@@ -24,8 +24,12 @@ function addRow(instance = { id: newId(), name: "", url: "" }, isDefault = false
   row.querySelector(".remove").addEventListener("click", () => {
     const wasDefault = radio.checked;
     row.remove();
-    if (wasDefault) list.querySelector("input[type=radio]")?.click();
-    if (!list.children.length) addRow();
+    if (wasDefault) {
+      list.querySelector("input[type=radio]")?.click();
+    }
+    if (!list.children.length) {
+      addRow();
+    }
   });
   list.append(row);
   return row;
@@ -35,7 +39,9 @@ const settings = await getSettings();
 for (const instance of settings.instances) {
   addRow(instance, instance.id === settings.defaultInstanceId);
 }
-if (!settings.instances.length) addRow().querySelector(".url").focus();
+if (!settings.instances.length) {
+  addRow().querySelector(".url").focus();
+}
 smartInput.checked = settings.smartDetect;
 bgInput.checked = settings.openInBackground;
 
@@ -65,7 +71,9 @@ form.addEventListener("submit", async (event) => {
     const urlInput = row.querySelector(".url");
     urlInput.classList.remove("invalid");
     // Skip completely empty rows.
-    if (!urlInput.value.trim() && !nameInput.value.trim()) continue;
+    if (!urlInput.value.trim() && !nameInput.value.trim()) {
+      continue;
+    }
     const url = normalizeInstanceUrl(urlInput.value);
     if (!url) {
       urlInput.classList.add("invalid");
@@ -76,7 +84,9 @@ form.addEventListener("submit", async (event) => {
     const name = nameInput.value.trim() || hostOf(url);
     nameInput.value = name;
     instances.push({ id: row.dataset.id, name, url });
-    if (row.querySelector("input[type=radio]").checked) defaultInstanceId = row.dataset.id;
+    if (row.querySelector("input[type=radio]").checked) {
+      defaultInstanceId = row.dataset.id;
+    }
   }
 
   if (firstInvalid) {

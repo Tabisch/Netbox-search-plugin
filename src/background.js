@@ -38,7 +38,9 @@ async function buildContextMenu() {
       title: settings.smartDetect ? "All objects (auto-detect)" : "All objects",
       contexts: ["selection"],
     });
-    if (!types.length) continue;
+    if (!types.length) {
+      continue;
+    }
     chrome.contextMenus.create({
       id: `${instance.id}${SEP}separator`,
       parentId,
@@ -67,14 +69,18 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   await rebuildContextMenu();
   if (reason === "install") {
     const { instances } = await getSettings();
-    if (!instances.length) chrome.runtime.openOptionsPage();
+    if (!instances.length) {
+      chrome.runtime.openOptionsPage();
+    }
   }
 });
 
 chrome.runtime.onStartup.addListener(rebuildContextMenu);
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync") rebuildContextMenu();
+  if (area === "sync") {
+    rebuildContextMenu();
+  }
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {
@@ -83,7 +89,9 @@ chrome.contextMenus.onClicked.addListener((info) => {
     return;
   }
   const [instanceId, type] = String(info.menuItemId).split(SEP);
-  if (info.selectionText?.trim()) searchNetBox(info.selectionText, { instanceId, type });
+  if (info.selectionText?.trim()) {
+    searchNetBox(info.selectionText, { instanceId, type });
+  }
 });
 
 // Address bar: type "nb", press Tab/Space, then the search term. The default
@@ -100,7 +108,9 @@ chrome.omnibox.onInputChanged.addListener(async (text, suggest) => {
       ? `Search ${escapeXml(instanceLabel(defaultInstance))} for: %s`
       : "No NetBox instance configured – press Enter to open the options",
   });
-  if (!text.trim()) return suggest([]);
+  if (!text.trim()) {
+    return suggest([]);
+  }
   suggest(
     settings.instances
       .filter((i) => i.id !== settings.defaultInstanceId)
@@ -118,6 +128,9 @@ chrome.omnibox.onInputEntered.addListener((input, disposition) => {
   const isSuggestion = /^[0-9a-f-]{36}$/.test(candidateId);
   const query = isSuggestion ? input.slice(0, index) : input;
   const instanceId = isSuggestion ? candidateId : undefined;
-  if (query.trim()) searchNetBox(query, { instanceId, disposition });
-  else chrome.runtime.openOptionsPage();
+  if (query.trim()) {
+    searchNetBox(query, { instanceId, disposition });
+  } else {
+    chrome.runtime.openOptionsPage();
+  }
 });

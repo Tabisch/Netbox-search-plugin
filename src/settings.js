@@ -60,15 +60,21 @@ export function findInstance(settings, id) {
 // Returns null if the value is not a usable http(s) URL.
 export function normalizeInstanceUrl(value) {
   let input = (value || "").trim();
-  if (!input) return null;
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(input)) input = `https://${input}`;
+  if (!input) {
+    return null;
+  }
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(input)) {
+    input = `https://${input}`;
+  }
   let url;
   try {
     url = new URL(input);
   } catch {
     return null;
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return null;
+  }
   url.search = "";
   url.hash = "";
   return url.href.replace(/\/+$/, "");

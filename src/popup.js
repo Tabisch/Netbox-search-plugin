@@ -18,7 +18,9 @@ instanceSelect.value = findInstance(settings, popupInstanceId)?.id ?? "";
 instanceSelect.hidden = settings.instances.length < 2;
 
 typeSelect.add(new Option(settings.smartDetect ? "All (auto-detect)" : "All objects", ALL));
-for (const type of OBJECT_TYPES) typeSelect.add(new Option(type.label, type.key));
+for (const type of OBJECT_TYPES) {
+  typeSelect.add(new Option(type.label, type.key));
+}
 typeSelect.value = OBJECT_TYPES.some((t) => t.key === popupType) ? popupType : ALL;
 
 function updateHint() {
@@ -37,7 +39,9 @@ document.getElementById("options").addEventListener("click", (event) => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!query.value.trim() && settings.instances.length) return;
+  if (!query.value.trim() && settings.instances.length) {
+    return;
+  }
   await chrome.storage.local.set({ popupInstanceId: instanceSelect.value, popupType: typeSelect.value });
   await searchNetBox(query.value, { instanceId: instanceSelect.value, type: typeSelect.value });
   window.close();
