@@ -208,7 +208,9 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   await queueSync();
   if (reason === "install") {
     const { instances } = await getSettings();
-    if (!instances.length) chrome.runtime.openOptionsPage();
+    if (!instances.length) {
+      chrome.runtime.openOptionsPage();
+    }
   }
 });
 
@@ -243,7 +245,9 @@ chrome.omnibox.onInputChanged.addListener(async (text, suggest) => {
       ? `Search ${escapeXml(instanceLabel(defaultInstance))} for: %s`
       : "No NetBox instance configured – press Enter to open the options",
   });
-  if (!text.trim()) return suggest([]);
+  if (!text.trim()) {
+    return suggest([]);
+  }
   suggest(
     settings.instances
       .filter((i) => i.id !== settings.defaultInstanceId)
@@ -261,6 +265,9 @@ chrome.omnibox.onInputEntered.addListener((input, disposition) => {
   const isSuggestion = /^[0-9a-f-]{36}$/.test(candidateId);
   const query = isSuggestion ? input.slice(0, index) : input;
   const instanceId = isSuggestion ? candidateId : undefined;
-  if (query.trim()) searchNetBox(query, { instanceId, disposition });
-  else chrome.runtime.openOptionsPage();
+  if (query.trim()) {
+    searchNetBox(query, { instanceId, disposition });
+  } else {
+    chrome.runtime.openOptionsPage();
+  }
 });

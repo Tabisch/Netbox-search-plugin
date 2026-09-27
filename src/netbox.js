@@ -23,17 +23,23 @@ export function objectType(key) {
 
 function parseIPv4(text) {
   const parts = text.split(".");
-  if (parts.length !== 4) return null;
+  if (parts.length !== 4) {
+    return null;
+  }
   let value = 0n;
   for (const part of parts) {
-    if (!/^\d{1,3}$/.test(part) || Number(part) > 255) return null;
+    if (!/^\d{1,3}$/.test(part) || Number(part) > 255) {
+      return null;
+    }
     value = (value << 8n) | BigInt(part);
   }
   return { version: 4, bits: 32, value, text };
 }
 
 function parseIPv6(text) {
-  if (!text.includes(":") || !/^[0-9a-f:.]+$/i.test(text)) return null;
+  if (!text.includes(":") || !/^[0-9a-f:.]+$/i.test(text)) {
+    return null;
+  }
   let host;
   try {
     // The URL parser validates and canonicalizes IPv6 literals for us.
@@ -60,7 +66,9 @@ const MAC_PATTERNS = [
 ];
 
 function normalizeMac(text) {
-  if (!MAC_PATTERNS.some((re) => re.test(text))) return null;
+  if (!MAC_PATTERNS.some((re) => re.test(text))) {
+    return null;
+  }
   const hex = text.replace(/[^0-9a-f]/gi, "").toUpperCase();
   return hex.match(/../g).join(":");
 }
@@ -81,14 +89,20 @@ export function detectQuery(input) {
   }
 
   const [addrText, maskText, ...rest] = text.split("/");
-  if (rest.length) return null;
+  if (rest.length) {
+    return null;
+  }
   const ip = parseIP(addrText);
-  if (!ip) return null;
+  if (!ip) {
+    return null;
+  }
 
   if (maskText === undefined) {
     return { kind: "IP address", path: "/ipam/ip-addresses/", params: { address: ip.text } };
   }
-  if (!/^\d{1,3}$/.test(maskText) || Number(maskText) > ip.bits) return null;
+  if (!/^\d{1,3}$/.test(maskText) || Number(maskText) > ip.bits) {
+    return null;
+  }
   const mask = BigInt(maskText);
   const cidr = `${ip.text}/${maskText}`;
   const hostBits = (1n << (BigInt(ip.bits) - mask)) - 1n;
@@ -101,7 +115,9 @@ export function detectQuery(input) {
 
 function makeUrl(instanceUrl, path, params) {
   const url = new URL(`${instanceUrl}${path}`);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
   return url.href;
 }
 
@@ -112,8 +128,12 @@ function makeUrl(instanceUrl, path, params) {
 export function buildSearchUrl(instanceUrl, query, { type = ALL, smart = false } = {}) {
   const q = query.trim();
   const listType = objectType(type);
-  if (listType) return makeUrl(instanceUrl, listType.path, { q });
+  if (listType) {
+    return makeUrl(instanceUrl, listType.path, { q });
+  }
   const detected = smart && detectQuery(q);
-  if (detected) return makeUrl(instanceUrl, detected.path, detected.params);
+  if (detected) {
+    return makeUrl(instanceUrl, detected.path, detected.params);
+  }
   return makeUrl(instanceUrl, "/search/", { q });
 }

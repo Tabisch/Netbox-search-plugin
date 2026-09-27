@@ -24,7 +24,9 @@ instanceSelect.value = findInstance(settings, popupInstanceId)?.id ?? "";
 instanceSelect.hidden = settings.instances.length < 2;
 
 typeSelect.add(new Option(settings.smartDetect ? "All (auto-detect)" : "All objects", ALL));
-for (const type of OBJECT_TYPES) typeSelect.add(new Option(type.label, type.key));
+for (const type of OBJECT_TYPES) {
+  typeSelect.add(new Option(type.label, type.key));
+}
 typeSelect.value = OBJECT_TYPES.some((t) => t.key === popupType) ? popupType : ALL;
 
 function selectedInstance() {

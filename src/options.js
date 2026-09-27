@@ -65,8 +65,12 @@ function addRow(instance = { id: newId(), name: "", url: "" }, token = "", isDef
   row.querySelector(".remove").addEventListener("click", () => {
     const wasDefault = radio.checked;
     row.remove();
-    if (wasDefault) list.querySelector("input[type=radio]")?.click();
-    if (!list.children.length) addRow();
+    if (wasDefault) {
+      list.querySelector("input[type=radio]")?.click();
+    }
+    if (!list.children.length) {
+      addRow();
+    }
   });
   row.querySelector(".test").addEventListener("click", () => testRow(row));
   list.append(row);
@@ -84,7 +88,9 @@ const tokens = await getTokens();
 for (const instance of settings.instances) {
   addRow(instance, tokens[instance.id] ?? "", instance.id === settings.defaultInstanceId);
 }
-if (!settings.instances.length) addRow().querySelector(".url").focus();
+if (!settings.instances.length) {
+  addRow().querySelector(".url").focus();
+}
 smartInput.checked = settings.smartDetect;
 bgInput.checked = settings.openInBackground;
 apiInput.checked = settings.apiEnabled;

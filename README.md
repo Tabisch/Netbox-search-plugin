@@ -87,6 +87,13 @@ Run the unit tests with Node 20 or newer (no dependencies needed):
 npm test
 ```
 
+Check code style (braces on every `if`/`for`/`else`, block contents on their own lines):
+
+```
+npm install
+npm run lint
+```
+
 After changing files, click the reload icon for the extension on `chrome://extensions`.
 Settings from version 1.0 (a single instance URL) are migrated automatically.
 
