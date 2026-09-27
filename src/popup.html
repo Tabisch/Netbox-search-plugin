@@ -5,19 +5,36 @@
   <title>Search NetBox</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    body { width: 320px; padding: 12px; }
-    form { display: flex; gap: 6px; }
-    .footer { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
+    body { width: 340px; padding: 12px; }
+    .row { display: flex; gap: 6px; }
+    .row + .row { margin-top: 8px; }
+    select {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      font: inherit;
+      color: inherit;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
     .footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   </style>
 </head>
 <body>
   <form id="form">
-    <input id="query" type="search" placeholder="Search NetBox…" autofocus>
-    <button type="submit">Go</button>
+    <div class="row">
+      <input id="query" type="search" placeholder="Search NetBox…" autofocus>
+      <button type="submit">Go</button>
+    </div>
+    <div class="row">
+      <select id="instance" aria-label="Instance"></select>
+      <select id="type" aria-label="Object type"></select>
+    </div>
   </form>
   <div class="footer">
-    <span id="instance"></span>
+    <span id="hint"></span>
     <a href="#" id="options">Options</a>
   </div>
   <script type="module" src="popup.js"></script>

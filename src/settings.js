@@ -1,12 +1,59 @@
-// Shared helpers for reading settings and building NetBox search URLs.
+// Shared helpers for reading settings and opening NetBox searches.
+
+import { ALL, OBJECT_TYPES, buildSearchUrl } from "./netbox.js";
 
 export const DEFAULTS = {
-  instanceUrl: "",
+  // [{ id, name, url }]; the entry whose id is defaultInstanceId is used by
+  // the address bar and preselected in the popup.
+  instances: [],
+  defaultInstanceId: null,
   openInBackground: false,
+  smartDetect: true,
+  // Object types offered in the context menu, in OBJECT_TYPES order.
+  menuTypes: ["devices", "ip-addresses", "prefixes", "vlans", "circuits"],
 };
 
 export async function getSettings() {
-  return { ...DEFAULTS, ...(await chrome.storage.sync.get(DEFAULTS)) };
+  const stored = await chrome.storage.sync.get(null);
+  const settings = { ...DEFAULTS, ...stored };
+
+  // Version 1.0 stored a single `instanceUrl`.
+  if (stored.instanceUrl && !stored.instances) {
+    const instance = { id: newId(), name: hostOf(stored.instanceUrl), url: stored.instanceUrl };
+    settings.instances = [instance];
+    settings.defaultInstanceId = instance.id;
+    await chrome.storage.sync.set({ instances: settings.instances, defaultInstanceId: instance.id });
+    await chrome.storage.sync.remove("instanceUrl");
+  }
+  delete settings.instanceUrl;
+
+  if (!settings.instances.some((i) => i.id === settings.defaultInstanceId)) {
+    settings.defaultInstanceId = settings.instances[0]?.id ?? null;
+  }
+  const known = new Set(OBJECT_TYPES.map((t) => t.key));
+  settings.menuTypes = settings.menuTypes.filter((key) => known.has(key));
+  return settings;
+}
+
+export function newId() {
+  return crypto.randomUUID();
+}
+
+export function hostOf(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+export function findInstance(settings, id) {
+  return (
+    settings.instances.find((i) => i.id === id) ||
+    settings.instances.find((i) => i.id === settings.defaultInstanceId) ||
+    settings.instances[0] ||
+    null
+  );
 }
 
 // Turns user input like "netbox.example.com/" into "https://netbox.example.com".
@@ -27,24 +74,21 @@ export function normalizeInstanceUrl(value) {
   return url.href.replace(/\/+$/, "");
 }
 
-export function buildSearchUrl(instanceUrl, query) {
-  const url = new URL(`${instanceUrl}/search/`);
-  url.searchParams.set("q", query.trim());
-  return url.href;
-}
-
-// Opens a NetBox search for `query`, or the options page if no instance is set.
-export async function searchNetBox(query, { disposition } = {}) {
-  const { instanceUrl, openInBackground } = await getSettings();
-  if (!instanceUrl) {
+// Opens a NetBox search, or the options page if no instance is configured.
+// `instanceId` falls back to the default instance; `type` is ALL or an
+// OBJECT_TYPES key; `disposition` comes from the omnibox.
+export async function searchNetBox(query, { instanceId, type = ALL, disposition } = {}) {
+  const settings = await getSettings();
+  const instance = findInstance(settings, instanceId);
+  if (!instance) {
     await chrome.runtime.openOptionsPage();
     return;
   }
-  const url = buildSearchUrl(instanceUrl, query);
+  const url = buildSearchUrl(instance.url, query, { type, smart: settings.smartDetect });
   if (disposition === "currentTab") {
     await chrome.tabs.update({ url });
   } else {
-    const active = disposition === "newBackgroundTab" ? false : !openInBackground;
+    const active = disposition === "newBackgroundTab" ? false : !settings.openInBackground;
     await chrome.tabs.create({ url, active });
   }
 }

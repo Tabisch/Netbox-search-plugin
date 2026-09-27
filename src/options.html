@@ -5,20 +5,57 @@
   <title>NetBox Search – Options</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    main { max-width: 560px; margin: 40px auto; padding: 0 16px; }
-    ul { padding-left: 20px; color: var(--muted); }
+    main { max-width: 680px; margin: 40px auto; padding: 0 16px; }
+    h2 { font-size: 16px; margin: 28px 0 8px; }
+    ul.help { padding-left: 20px; color: var(--muted); }
+    .instance {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) minmax(0, 2fr) auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .instance input.invalid { border-color: var(--error); }
+    .instance .default { display: flex; align-items: center; }
+    .columns {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) minmax(0, 2fr) auto;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .types { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px 16px; }
+    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+    button.secondary:hover { background: var(--border); }
+    button.icon { padding: 6px 10px; }
+    .actions { margin-top: 24px; }
+    @media (max-width: 520px) {
+      .columns { display: none; }
+      .instance { grid-template-columns: auto 1fr auto; }
+      .instance .url { grid-column: 2 / 3; }
+    }
   </style>
 </head>
 <body>
   <main>
     <h1>NetBox Search</h1>
-    <p class="lead">Choose which NetBox instance searches are sent to.</p>
+    <p class="lead">Choose which NetBox instances searches are sent to.</p>
 
     <form id="form" novalidate>
+      <h2>Instances</h2>
+      <div class="columns"><span>Default</span><span>Name</span><span>URL</span><span></span></div>
+      <div id="instances"></div>
+      <button type="button" id="add" class="secondary">+ Add instance</button>
+      <div class="hint">Include any path prefix, e.g. <code>https://example.com/netbox</code>. The default instance is used by the address bar and preselected in the popup.</div>
+
+      <h2>Search</h2>
       <div class="field">
-        <label for="instanceUrl">NetBox URL</label>
-        <input id="instanceUrl" type="url" placeholder="https://netbox.example.com" autocomplete="url" required>
-        <div class="hint">Base URL of your instance, including any path prefix (e.g. <code>https://example.com/netbox</code>).</div>
+        <label class="check">
+          <input id="smartDetect" type="checkbox">
+          Auto-detect IP addresses, prefixes, MAC addresses and ASNs
+        </label>
+        <div class="hint">"All objects" searches for e.g. <code>10.0.0.0/24</code>, <code>00:1a:2b:3c:4d:5e</code> or <code>AS65001</code> open the matching filtered list instead of global search.</div>
       </div>
       <div class="field">
         <label class="check">
@@ -26,17 +63,33 @@
           Open results in a background tab
         </label>
       </div>
-      <button type="submit">Save</button>
-      <div id="status" class="status" role="status"></div>
+
+      <h2>Context menu object types</h2>
+      <div id="types" class="types"></div>
+
+      <div class="actions">
+        <button type="submit">Save</button>
+        <div id="status" class="status" role="status"></div>
+      </div>
     </form>
 
-    <h2 style="font-size:16px;margin-top:32px">How to search</h2>
-    <ul>
-      <li>Highlight text on any page, right-click and choose <em>Search NetBox for "…"</em>.</li>
+    <h2>How to search</h2>
+    <ul class="help">
+      <li>Highlight text on any page, right-click and choose <em>Search … for "…"</em>, then an object type.</li>
       <li>Click the toolbar icon and type a query.</li>
       <li>Type <kbd>nb</kbd> then <kbd>Space</kbd> in the address bar, followed by your query.</li>
     </ul>
   </main>
+
+  <template id="instance-row">
+    <div class="instance">
+      <label class="default" title="Default instance"><input type="radio" name="default" aria-label="Default instance"></label>
+      <input class="name" type="text" placeholder="Name (optional)" aria-label="Name">
+      <input class="url" type="url" placeholder="https://netbox.example.com" aria-label="URL">
+      <button type="button" class="remove secondary icon" title="Remove" aria-label="Remove instance">✕</button>
+    </div>
+  </template>
+
   <script type="module" src="options.js"></script>
 </body>
 </html>
