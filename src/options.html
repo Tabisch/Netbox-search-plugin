@@ -15,7 +15,11 @@
       align-items: center;
       margin-bottom: 8px;
     }
+    .instance { margin-bottom: 16px; }
     .instance input.invalid { border-color: var(--error); }
+    .instance .token { grid-column: 2 / 4; }
+    .instance .row-status { grid-column: 2 / 5; margin: 0; min-height: 0; font-size: 12px; }
+    .instance .row-status:empty { display: none; }
     .instance .default { display: flex; align-items: center; }
     .columns {
       display: grid;
@@ -33,7 +37,8 @@
     @media (max-width: 520px) {
       .columns { display: none; }
       .instance { grid-template-columns: auto 1fr auto; }
-      .instance .url { grid-column: 2 / 3; }
+      .instance .url, .instance .token { grid-column: 2 / 3; }
+      .instance .row-status { grid-column: 2 / 4; }
     }
   </style>
 </head>
@@ -64,6 +69,31 @@
         </label>
       </div>
 
+      <h2>NetBox API</h2>
+      <p class="hint" style="margin-top:0">These features read data from your instances through the NetBox API, using the
+        API token above or, without one, your NetBox login in this browser. Turning them on asks Chrome for
+        access to your instance URLs.</p>
+      <div class="field">
+        <label class="check">
+          <input id="apiEnabled" type="checkbox">
+          Use the NetBox API: show live results in the toolbar popup
+        </label>
+      </div>
+      <div class="field">
+        <label class="check">
+          <input id="jumpToSingleMatch" type="checkbox" data-needs-api>
+          Open the object directly when a search has exactly one match
+        </label>
+      </div>
+      <div class="field">
+        <label class="check">
+          <input id="hoverPreview" type="checkbox" data-needs-api>
+          Preview matches when selecting text on web pages
+        </label>
+        <div class="hint">Shows a small card with NetBox matches from the default instance below selected text.
+          This asks for access to all websites so the preview can run on them. Selected text is only sent to your NetBox.</div>
+      </div>
+
       <h2>Context menu object types</h2>
       <div id="types" class="types"></div>
 
@@ -76,6 +106,7 @@
     <h2>How to search</h2>
     <ul class="help">
       <li>Highlight text on any page, right-click and choose <em>Search … for "…"</em>, then an object type.</li>
+      <li>Right-click a link and choose <em>Search … for link text</em>.</li>
       <li>Click the toolbar icon and type a query.</li>
       <li>Type <kbd>nb</kbd> then <kbd>Space</kbd> in the address bar, followed by your query.</li>
     </ul>
@@ -87,6 +118,9 @@
       <input class="name" type="text" placeholder="Name (optional)" aria-label="Name">
       <input class="url" type="url" placeholder="https://netbox.example.com" aria-label="URL">
       <button type="button" class="remove secondary icon" title="Remove" aria-label="Remove instance">✕</button>
+      <input class="token" type="password" placeholder="API token (optional, stored on this device only)" aria-label="API token" autocomplete="off">
+      <button type="button" class="test secondary">Test</button>
+      <div class="row-status status"></div>
     </div>
   </template>
 

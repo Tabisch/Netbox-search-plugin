@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "NetBox Search",
-  "version": "1.1.0",
-  "description": "Search a configurable NetBox instance from the context menu, the toolbar or the address bar.",
-  "permissions": ["contextMenus", "storage"],
+  "version": "1.2.0",
+  "description": "Search your NetBox instances from the context menu, the toolbar or the address bar, with optional live results.",
+  "permissions": ["contextMenus", "storage", "scripting", "activeTab"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "src/background.js",
     "type": "module"

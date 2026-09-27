@@ -1,5 +1,6 @@
 // Shared helpers for reading settings and opening NetBox searches.
 
+import { searchApi } from "./api.js";
 import { ALL, OBJECT_TYPES, buildSearchUrl } from "./netbox.js";
 
 export const DEFAULTS = {
@@ -11,7 +12,32 @@ export const DEFAULTS = {
   smartDetect: true,
   // Object types offered in the context menu, in OBJECT_TYPES order.
   menuTypes: ["devices", "ip-addresses", "prefixes", "vlans", "circuits"],
+  // NetBox API features. They need host access to the instance, which the
+  // options page requests when they are turned on.
+  apiEnabled: false,
+  jumpToSingleMatch: true,
+  // Also needs access to all sites, for the content script.
+  hoverPreview: false,
 };
+
+// Match pattern for chrome.permissions covering an instance.
+export function originPattern(url) {
+  return `${new URL(url).origin}/*`;
+}
+
+export const ALL_SITES = ["http://*/*", "https://*/*"];
+
+// API tokens stay on this device (chrome.storage.local), keyed by instance id.
+export async function getTokens() {
+  const { tokens } = await chrome.storage.local.get({ tokens: {} });
+  return tokens;
+}
+
+// Whether API lookups may be made for `instance` right now.
+export async function hasApiAccess(settings, instance) {
+  if (!settings.apiEnabled || !instance) return false;
+  return chrome.permissions.contains({ origins: [originPattern(instance.url)] });
+}
 
 export async function getSettings() {
   const stored = await chrome.storage.sync.get(null);
@@ -84,11 +110,38 @@ export async function searchNetBox(query, { instanceId, type = ALL, disposition 
     await chrome.runtime.openOptionsPage();
     return;
   }
-  const url = buildSearchUrl(instance.url, query, { type, smart: settings.smartDetect });
+  const url = await resolveSearchUrl(settings, instance, query, type);
   if (disposition === "currentTab") {
     await chrome.tabs.update({ url });
   } else {
     const active = disposition === "newBackgroundTab" ? false : !settings.openInBackground;
     await chrome.tabs.create({ url, active });
   }
+}
+
+const JUMP_TIMEOUT_MS = 3000;
+
+// The page to open for a search: the object itself when the API finds exactly
+// one match (and that option is on), otherwise the search results page.
+export async function resolveSearchUrl(settings, instance, query, type = ALL) {
+  const url = buildSearchUrl(instance.url, query, { type, smart: settings.smartDetect });
+  if (!settings.jumpToSingleMatch || !(await hasApiAccess(settings, instance))) return url;
+  const tokens = await getTokens();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), JUMP_TIMEOUT_MS);
+  try {
+    const { total, results, errors } = await searchApi(instance.url, tokens[instance.id], query, {
+      type,
+      smart: settings.smartDetect,
+      limit: 2,
+      signal: controller.signal,
+    });
+    // With a failed request we can't know the match is unique.
+    if (total === 1 && results.length === 1 && !errors.length) return results[0].url;
+  } catch {
+    // Slow or unreachable API: fall back to the results page.
+  } finally {
+    clearTimeout(timer);
+  }
+  return url;
 }
