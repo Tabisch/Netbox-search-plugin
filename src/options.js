@@ -127,7 +127,9 @@ function readInstances() {
     const token = row.querySelector(".token").value.trim();
     urlInput.classList.remove("invalid");
     // Skip completely empty rows.
-    if (!urlInput.value.trim() && !nameInput.value.trim() && !token) continue;
+    if (!urlInput.value.trim() && !nameInput.value.trim() && !token) {
+      continue;
+    }
     const url = normalizeInstanceUrl(urlInput.value);
     if (!url) {
       urlInput.classList.add("invalid");
@@ -138,8 +140,12 @@ function readInstances() {
     const name = nameInput.value.trim() || hostOf(url);
     nameInput.value = name;
     instances.push({ id: row.dataset.id, name, url });
-    if (token) newTokens[row.dataset.id] = token;
-    if (row.querySelector("input[type=radio]").checked) defaultInstanceId = row.dataset.id;
+    if (token) {
+      newTokens[row.dataset.id] = token;
+    }
+    if (row.querySelector("input[type=radio]").checked) {
+      defaultInstanceId = row.dataset.id;
+    }
   }
   return { instances, tokens: newTokens, defaultInstanceId, firstInvalid };
 }
@@ -169,7 +175,9 @@ form.addEventListener("submit", async (event) => {
     // Access to all sites is only kept for the preview. Once granted it stays
     // until the API features are turned off, since dropping it could also
     // drop access to the instances.
-    if (hoverPreview) origins.push(...ALL_SITES);
+    if (hoverPreview) {
+      origins.push(...ALL_SITES);
+    }
     let granted = false;
     try {
       granted = await chrome.permissions.request({ origins });
@@ -186,7 +194,9 @@ form.addEventListener("submit", async (event) => {
     // Give back host access that is no longer needed.
     try {
       const { origins = [] } = await chrome.permissions.getAll();
-      if (origins.length) await chrome.permissions.remove({ origins });
+      if (origins.length) {
+        await chrome.permissions.remove({ origins });
+      }
     } catch (error) {
       console.warn("Could not remove host access:", error);
     }
@@ -203,6 +213,9 @@ form.addEventListener("submit", async (event) => {
     hoverPreview,
     menuTypes: [...typesBox.querySelectorAll("input:checked")].map((box) => box.value),
   });
-  if (warning) showStatus(`Saved. ${warning}`, "error");
-  else showStatus("Saved.", "ok");
+  if (warning) {
+    showStatus(`Saved. ${warning}`, "error");
+  } else {
+    showStatus("Saved.", "ok");
+  }
 });

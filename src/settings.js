@@ -35,7 +35,9 @@ export async function getTokens() {
 
 // Whether API lookups may be made for `instance` right now.
 export async function hasApiAccess(settings, instance) {
-  if (!settings.apiEnabled || !instance) return false;
+  if (!settings.apiEnabled || !instance) {
+    return false;
+  }
   return chrome.permissions.contains({ origins: [originPattern(instance.url)] });
 }
 
@@ -131,7 +133,9 @@ const JUMP_TIMEOUT_MS = 3000;
 // one match (and that option is on), otherwise the search results page.
 export async function resolveSearchUrl(settings, instance, query, type = ALL) {
   const url = buildSearchUrl(instance.url, query, { type, smart: settings.smartDetect });
-  if (!settings.jumpToSingleMatch || !(await hasApiAccess(settings, instance))) return url;
+  if (!settings.jumpToSingleMatch || !(await hasApiAccess(settings, instance))) {
+    return url;
+  }
   const tokens = await getTokens();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), JUMP_TIMEOUT_MS);
@@ -143,7 +147,9 @@ export async function resolveSearchUrl(settings, instance, query, type = ALL) {
       signal: controller.signal,
     });
     // With a failed request we can't know the match is unique.
-    if (total === 1 && results.length === 1 && !errors.length) return results[0].url;
+    if (total === 1 && results.length === 1 && !errors.length) {
+      return results[0].url;
+    }
   } catch {
     // Slow or unreachable API: fall back to the results page.
   } finally {

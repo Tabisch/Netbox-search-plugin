@@ -14,7 +14,9 @@ export class ApiError extends Error {
 // older tokens use the "Token" scheme.
 export function authHeader(token) {
   const value = (token || "").trim();
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   return value.startsWith("nbt_") ? `Bearer ${value}` : `Token ${value}`;
 }
 
@@ -23,24 +25,34 @@ export function authHeader(token) {
 export function apiRequests(query, { type = ALL, smart = false } = {}) {
   const q = query.trim();
   const listType = objectType(type);
-  if (listType) return [{ label: listType.label, path: listType.path, params: { q } }];
+  if (listType) {
+    return [{ label: listType.label, path: listType.path, params: { q } }];
+  }
   const detected = smart && detectQuery(q);
-  if (detected) return [{ label: detected.kind, path: detected.path, params: detected.params }];
+  if (detected) {
+    return [{ label: detected.kind, path: detected.path, params: detected.params }];
+  }
   return OBJECT_TYPES.map((t) => ({ label: t.label, path: t.path, params: { q } }));
 }
 
 async function apiGet(instanceUrl, token, path, params, signal) {
   const url = new URL(`${instanceUrl}/api${path}`);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
   const headers = { Accept: "application/json" };
   const auth = authHeader(token);
-  if (auth) headers.Authorization = auth;
+  if (auth) {
+    headers.Authorization = auth;
+  }
   let response;
   try {
     // Without a token, NetBox falls back to the browser's login session.
     response = await fetch(url, { headers, signal, credentials: "include" });
   } catch (error) {
-    if (error.name === "AbortError") throw error;
+    if (error.name === "AbortError") {
+      throw error;
+    }
     throw new ApiError(`Can't reach ${url.host}.`, 0);
   }
   if (response.status === 401 || response.status === 403) {
@@ -49,7 +61,9 @@ async function apiGet(instanceUrl, token, path, params, signal) {
       response.status,
     );
   }
-  if (!response.ok) throw new ApiError(`NetBox returned HTTP ${response.status}.`, response.status);
+  if (!response.ok) {
+    throw new ApiError(`NetBox returned HTTP ${response.status}.`, response.status);
+  }
   const type = response.headers.get("content-type") || "";
   // A login page (HTML) instead of JSON means the session isn't valid.
   if (!type.includes("json")) {
@@ -61,14 +75,22 @@ async function apiGet(instanceUrl, token, path, params, signal) {
 // The web UI link for an API object. `display_url` exists from NetBox 4.1;
 // older versions only have the API `url`.
 export function webUrl(object, instanceUrl) {
-  if (object.display_url) return object.display_url;
-  if (object.url) return object.url.replace(/\/api\//, "/");
+  if (object.display_url) {
+    return object.display_url;
+  }
+  if (object.url) {
+    return object.url.replace(/\/api\//, "/");
+  }
   return instanceUrl;
 }
 
 function nameOf(value) {
-  if (value == null || value === "") return null;
-  if (typeof value !== "object") return String(value);
+  if (value == null || value === "") {
+    return null;
+  }
+  if (typeof value !== "object") {
+    return String(value);
+  }
   return value.label ?? value.display ?? value.name ?? null;
 }
 
@@ -103,7 +125,9 @@ export async function searchApi(instanceUrl, token, query, { type, smart, limit 
       apiGet(instanceUrl, token, req.path, { ...req.params, limit }, signal).then((data) => ({ req, data })),
     ),
   );
-  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
 
   const results = [];
   const errors = [];
@@ -125,7 +149,9 @@ export async function searchApi(instanceUrl, token, query, { type, smart, limit 
     }
   }
   // Only fail if every request failed; partial results are still useful.
-  if (errors.length === settled.length && errors.length) throw errors[0];
+  if (errors.length === settled.length && errors.length) {
+    throw errors[0];
+  }
   return { total, results, errors };
 }
 

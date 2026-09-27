@@ -27,7 +27,9 @@ function addTypeItems(parentId, prefix, types, settings, contexts) {
     title: settings.smartDetect ? "All objects (auto-detect)" : "All objects",
     contexts,
   });
-  if (!types.length) return;
+  if (!types.length) {
+    return;
+  }
   chrome.contextMenus.create({ id: `${prefix}${SEP}separator`, parentId, type: "separator", contexts });
   for (const type of types) {
     chrome.contextMenus.create({ id: `${prefix}${SEP}${type.key}`, parentId, title: type.label, contexts });
@@ -98,7 +100,9 @@ async function linkQuery(info, tab) {
     // Pages like the Chrome Web Store can't be scripted.
   }
   // Long texts ("Click here to view the device dashboard") make poor queries.
-  if (text && text.length <= 100 && !text.includes("\n")) return text;
+  if (text && text.length <= 100 && !text.includes("\n")) {
+    return text;
+  }
   try {
     return new URL(info.linkUrl).hostname;
   } catch {
@@ -113,7 +117,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
   const [source, instanceId, type] = String(info.menuItemId).split(SEP);
   const query = source === LINK ? await linkQuery(info, tab) : info.selectionText;
-  if (query?.trim()) searchNetBox(query, { instanceId, type });
+  if (query?.trim()) {
+    searchNetBox(query, { instanceId, type });
+  }
 });
 
 // Hover preview: a content script registered for all sites, only while the
@@ -155,16 +161,24 @@ const PREVIEW_TTL_MS = 60_000;
 
 async function previewLookup(query, senderUrl) {
   const settings = await getSettings();
-  if (!settings.hoverPreview) return null;
+  if (!settings.hoverPreview) {
+    return null;
+  }
   const instance = findInstance(settings);
-  if (!(await hasApiAccess(settings, instance))) return null;
+  if (!(await hasApiAccess(settings, instance))) {
+    return null;
+  }
   // No previews on NetBox itself.
   const onNetBox = (i) => senderUrl === i.url || senderUrl.startsWith(`${i.url}/`);
-  if (senderUrl && settings.instances.some(onNetBox)) return null;
+  if (senderUrl && settings.instances.some(onNetBox)) {
+    return null;
+  }
 
   const key = `${instance.id}${SEP}${query}`;
   const cached = previewCache.get(key);
-  if (cached && Date.now() - cached.time < PREVIEW_TTL_MS) return cached.value;
+  if (cached && Date.now() - cached.time < PREVIEW_TTL_MS) {
+    return cached.value;
+  }
 
   const tokens = await getTokens();
   let value;
@@ -173,14 +187,16 @@ async function previewLookup(query, senderUrl) {
       smart: settings.smartDetect,
       limit: 3,
     });
-    value = total
-      ? {
-          instanceName: instanceLabel(instance),
-          total,
-          results: results.slice(0, 5),
-          searchUrl: buildSearchUrl(instance.url, query, { smart: settings.smartDetect }),
-        }
-      : null;
+    if (total) {
+      value = {
+        instanceName: instanceLabel(instance),
+        total,
+        results: results.slice(0, 5),
+        searchUrl: buildSearchUrl(instance.url, query, { smart: settings.smartDetect }),
+      };
+    } else {
+      value = null;
+    }
   } catch {
     value = null;
   }
@@ -189,7 +205,9 @@ async function previewLookup(query, senderUrl) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (sender.id !== chrome.runtime.id) return false;
+  if (sender.id !== chrome.runtime.id) {
+    return false;
+  }
   if (message?.action === "search") {
     // From the popup, which closes right away; the search (and any API
     // lookup for a single match) continues here.
@@ -225,7 +243,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
     rebuildContextMenu();
     queueSync();
   }
-  if (area === "local" && changes.tokens) previewCache.clear();
+  if (area === "local" && changes.tokens) {
+    previewCache.clear();
+  }
 });
 
 chrome.permissions.onAdded.addListener(queueSync);

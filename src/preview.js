@@ -3,7 +3,9 @@
 // Only registered when "Preview matches for selected text" is enabled.
 
 (() => {
-  if (window.__netboxSearchPreview) return;
+  if (window.__netboxSearchPreview) {
+    return;
+  }
   window.__netboxSearchPreview = true;
 
   const MIN_LENGTH = 2;
@@ -90,7 +92,9 @@
     // Below the selection, or above it if there's no room.
     const { height, width } = card.getBoundingClientRect();
     let top = rect.bottom + 6;
-    if (top + height > window.innerHeight - 8) top = Math.max(8, rect.top - height - 6);
+    if (top + height > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - height - 6);
+    }
     const left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
     card.style.top = `${top}px`;
     card.style.left = `${left}px`;
@@ -98,11 +102,17 @@
 
   function currentSelection() {
     const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || !selection.rangeCount) return null;
+    if (!selection || selection.isCollapsed || !selection.rangeCount) {
+      return null;
+    }
     const text = selection.toString().trim();
-    if (text.length < MIN_LENGTH || text.length > MAX_LENGTH || /\n/.test(text)) return null;
+    if (text.length < MIN_LENGTH || text.length > MAX_LENGTH || /\n/.test(text)) {
+      return null;
+    }
     const rect = selection.getRangeAt(0).getBoundingClientRect();
-    if (!rect.width && !rect.height) return null;
+    if (!rect.width && !rect.height) {
+      return null;
+    }
     return { text, rect };
   }
 
@@ -113,7 +123,9 @@
       return;
     }
     // Same selection as last time: already shown or dismissed.
-    if (current.text === lastQuery) return;
+    if (current.text === lastQuery) {
+      return;
+    }
     lastQuery = current.text;
     const id = ++requestId;
     let reply;
@@ -126,8 +138,12 @@
     }
     reply.then((data) => {
       // Ignore stale answers and selections that changed meanwhile.
-      if (id !== requestId || !data?.results?.length) return;
-      if (currentSelection()?.text !== current.text) return;
+      if (id !== requestId || !data?.results?.length) {
+        return;
+      }
+      if (currentSelection()?.text !== current.text) {
+        return;
+      }
       show(data, current.rect);
     }, stop);
   }
@@ -138,7 +154,9 @@
   }
 
   function schedule(event) {
-    if (host && event.composedPath().includes(host)) return;
+    if (host && event.composedPath().includes(host)) {
+      return;
+    }
     clearTimeout(timer);
     timer = setTimeout(check, DELAY_MS);
   }

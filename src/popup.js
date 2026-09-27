@@ -107,12 +107,19 @@ async function runLiveSearch() {
       signal,
     });
     renderResults(results);
-    if (!total) setMessage("No matches. Press Enter to open the NetBox search.");
-    else if (errors.length) setMessage(`Some object types could not be searched: ${errors[0].message}`, true);
-    else if (total > results.length) setMessage(`Showing ${results.length} of ${total} matches. Press Enter for all.`);
-    else setMessage("");
+    if (!total) {
+      setMessage("No matches. Press Enter to open the NetBox search.");
+    } else if (errors.length) {
+      setMessage(`Some object types could not be searched: ${errors[0].message}`, true);
+    } else if (total > results.length) {
+      setMessage(`Showing ${results.length} of ${total} matches. Press Enter for all.`);
+    } else {
+      setMessage("");
+    }
   } catch (error) {
-    if (error.name === "AbortError") return;
+    if (error.name === "AbortError") {
+      return;
+    }
     renderResults([]);
     setMessage(error.message, true);
   }
@@ -166,7 +173,9 @@ form.addEventListener("submit", async (event) => {
     await openUrl(links()[active].href);
     return;
   }
-  if (!query.value.trim() && settings.instances.length) return;
+  if (!query.value.trim() && settings.instances.length) {
+    return;
+  }
   await chrome.storage.local.set({ popupInstanceId: instanceSelect.value, popupType: typeSelect.value });
   // The background worker opens the tab, so the popup can close immediately
   // even if it first checks the API for a single match.
