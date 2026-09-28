@@ -183,7 +183,7 @@ async function previewLookup(query, senderUrl) {
   const tokens = await getTokens();
   let value;
   try {
-    const { total, results } = await searchApi(instance.url, tokens[instance.id], query, {
+    const { total, results, fallback } = await searchApi(instance.url, tokens[instance.id], query, {
       smart: settings.smartDetect,
       limit: 3,
     });
@@ -192,7 +192,7 @@ async function previewLookup(query, senderUrl) {
         instanceName: instanceLabel(instance),
         total,
         results: results.slice(0, 5),
-        searchUrl: buildSearchUrl(instance.url, query, { smart: settings.smartDetect }),
+        searchUrl: buildSearchUrl(instance.url, query, { smart: settings.smartDetect && !fallback }),
       };
     } else {
       value = null;

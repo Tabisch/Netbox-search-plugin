@@ -116,10 +116,21 @@ export function describe(object) {
   return [...new Set(parts)].join(" · ");
 }
 
-// Runs a search against the API. Returns { total, results, errors } where
-// results are { typeLabel, display, detail, url } sorted by object type.
+// Runs a search against the API. Returns { total, results, errors, fallback }
+// where results are { typeLabel, display, detail, url } sorted by object type.
+// If a detected IP/prefix/MAC/ASN matches nothing, the search is repeated as a
+// global search and `fallback` is true.
 export async function searchApi(instanceUrl, token, query, { type, smart, limit = 5, signal } = {}) {
-  const requests = apiRequests(query, { type, smart });
+  const detected = await runSearch(instanceUrl, token, apiRequests(query, { type, smart }), limit, signal);
+  const usedDetection = smart && !objectType(type) && detectQuery(query.trim());
+  if (!usedDetection || detected.total || detected.errors.length) {
+    return { ...detected, fallback: false };
+  }
+  const global = await runSearch(instanceUrl, token, apiRequests(query, { type: ALL }), limit, signal);
+  return { ...global, fallback: true };
+}
+
+async function runSearch(instanceUrl, token, requests, limit, signal) {
   const settled = await Promise.allSettled(
     requests.map((req) =>
       apiGet(instanceUrl, token, req.path, { ...req.params, limit }, signal).then((data) => ({ req, data })),

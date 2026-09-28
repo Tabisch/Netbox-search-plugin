@@ -1,7 +1,7 @@
 // Shared helpers for reading settings and opening NetBox searches.
 
 import { searchApi } from "./api.js";
-import { ALL, OBJECT_TYPES, buildSearchUrl } from "./netbox.js";
+import { ALL, OBJECT_TYPES, buildSearchUrl, detectQuery } from "./netbox.js";
 
 export const DEFAULTS = {
   // [{ id, name, url }]; the entry whose id is defaultInstanceId is used by
@@ -130,25 +130,31 @@ export async function searchNetBox(query, { instanceId, type = ALL, disposition 
 const JUMP_TIMEOUT_MS = 3000;
 
 // The page to open for a search: the object itself when the API finds exactly
-// one match (and that option is on), otherwise the search results page.
+// one match (and that option is on), otherwise the search results page. A
+// detected IP/prefix/MAC/ASN without matches opens the global search instead.
 export async function resolveSearchUrl(settings, instance, query, type = ALL) {
-  const url = buildSearchUrl(instance.url, query, { type, smart: settings.smartDetect });
-  if (!settings.jumpToSingleMatch || !(await hasApiAccess(settings, instance))) {
+  const smart = settings.smartDetect;
+  const url = buildSearchUrl(instance.url, query, { type, smart });
+  const detected = smart && type === ALL && detectQuery(query);
+  if (!(settings.jumpToSingleMatch || detected) || !(await hasApiAccess(settings, instance))) {
     return url;
   }
   const tokens = await getTokens();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), JUMP_TIMEOUT_MS);
   try {
-    const { total, results, errors } = await searchApi(instance.url, tokens[instance.id], query, {
+    const { total, results, errors, fallback } = await searchApi(instance.url, tokens[instance.id], query, {
       type,
-      smart: settings.smartDetect,
+      smart,
       limit: 2,
       signal: controller.signal,
     });
     // With a failed request we can't know the match is unique.
-    if (total === 1 && results.length === 1 && !errors.length) {
+    if (settings.jumpToSingleMatch && total === 1 && results.length === 1 && !errors.length) {
       return results[0].url;
+    }
+    if (fallback) {
+      return buildSearchUrl(instance.url, query, { type });
     }
   } catch {
     // Slow or unreachable API: fall back to the results page.

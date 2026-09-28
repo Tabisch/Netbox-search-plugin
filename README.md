@@ -24,6 +24,7 @@ Search a [NetBox](https://github.com/netbox-community/netbox) instance straight 
   | anything else        | `/search/?q=…`                                |
 
   Picking a specific object type uses that list's search (`/dcim/devices/?q=…`).
+  With API access, a detected value that matches nothing falls back to the global search.
   Auto-detection can be turned off in the options.
 - **Toolbar popup:** click the extension icon, pick the instance and object type, and type a
   query. The last choices are remembered.

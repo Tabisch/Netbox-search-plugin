@@ -97,3 +97,26 @@ test("checkConnection returns the version", async (t) => {
   stubFetch(t, (url) => json(url.pathname.endsWith("/status/") ? { "netbox-version": "4.3.1" } : { count: 0, results: [] }));
   assert.equal(await checkConnection(base, ""), "4.3.1");
 });
+
+test("searchApi falls back to global search when a detected value has no matches", async (t) => {
+  const calls = stubFetch(t, (url) => {
+    if (url.pathname.endsWith("/dcim/devices/") && url.searchParams.get("q") === "10.0.0.1") {
+      return json({ count: 1, results: [{ id: 1, display: "sw01", display_url: `${base}/dcim/devices/1/` }] });
+    }
+    return json({ count: 0, results: [] });
+  });
+  const { total, results, fallback } = await searchApi(base, "", "10.0.0.1", { smart: true });
+  assert.equal(fallback, true);
+  assert.equal(total, 1);
+  assert.equal(results[0].display, "sw01");
+  assert.equal(calls[0].url.searchParams.get("address"), "10.0.0.1");
+  assert.ok(calls.slice(1).every((c) => c.url.searchParams.get("q") === "10.0.0.1"));
+});
+
+test("searchApi keeps detected results without fallback", async (t) => {
+  const calls = stubFetch(t, () => json({ count: 1, results: [{ id: 1, display: "10.0.0.1/24" }] }));
+  const { total, fallback } = await searchApi(base, "", "10.0.0.1", { smart: true });
+  assert.equal(fallback, false);
+  assert.equal(total, 1);
+  assert.equal(calls.length, 1);
+});
