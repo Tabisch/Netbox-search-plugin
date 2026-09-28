@@ -29,7 +29,28 @@ Search a [NetBox](https://github.com/netbox-community/netbox) instance straight 
   query. The last choices are remembered.
 - **Address bar:** type `nb`, press <kbd>Space</kbd> or <kbd>Tab</kbd>, then enter your query.
   Enter searches the default instance; other instances appear as suggestions.
+- **Link search:** right-click a link and choose **Search *instance* for link text**. If the link
+  has no usable text (e.g. an icon), the link's host name is searched instead.
 - Optionally open results in a background tab.
+
+### NetBox API features (optional)
+
+These read data through the NetBox REST API. Turn them on under **NetBox API** in the options.
+Chrome then asks for access to your instance URLs. Authentication uses the per-instance
+**API token** (stored only on this device, never synced), or your NetBox login session in this
+browser if no token is set. Both NetBox v1 tokens and v2 (`nbt_…`) tokens work. The **Test**
+button next to each instance checks the URL and token.
+
+- **Live results:** the toolbar popup shows matches as you type (name, type, status, site, …).
+  Use <kbd>↑</kbd>/<kbd>↓</kbd> and <kbd>Enter</kbd> to open one, or press <kbd>Enter</kbd> with
+  nothing highlighted to open the full search.
+- **Open single matches directly:** when a search from the context menu, popup or address bar
+  has exactly one match, the object's page opens instead of the results list. If the API is
+  slow (over 3 seconds) or fails, the normal search page opens.
+- **Selection preview:** select short text on any web page to see a card with NetBox matches
+  from the default instance. This asks for access to all websites, because it runs a small
+  script on every page. Selected text is only sent to your NetBox instance. The preview is off
+  by default and doesn't run on your NetBox instances themselves.
 
 ## Installation (unpacked)
 
@@ -46,14 +67,16 @@ uses your normal NetBox web session.
 
 ```
 manifest.json      Manifest V3 definition
-src/background.js  Service worker: context menu and omnibox handling
+src/background.js  Service worker: context menus, omnibox, single-match lookup, preview requests
+src/api.js         NetBox REST API client (no chrome APIs)
+src/preview.js     Content script for the selection preview (only registered when enabled)
 src/netbox.js      NetBox URL building and IP/prefix/MAC/ASN detection (no chrome APIs)
 src/settings.js    Settings storage, migration, URL normalization and search helper
 src/options.*      Options page (instances, detection, menu object types)
 src/popup.*        Toolbar popup search box
 src/style.css      Shared styles (light and dark mode)
 icons/             Extension icons
-test/              Unit tests for src/netbox.js
+test/              Unit tests for src/netbox.js and src/api.js
 ```
 
 ## Development
@@ -76,8 +99,13 @@ Settings from version 1.0 (a single instance URL) are migrated automatically.
 
 ## Permissions
 
-- `contextMenus` – adds the "Search NetBox" entry for selected text.
-- `storage` – saves your settings (synced across your Chrome profile).
+- `contextMenus`: adds the "Search NetBox" entries for selected text and links.
+- `storage`: saves your settings (synced across your Chrome profile) and API tokens (this device only).
+- `activeTab` and `scripting`: read the text of a right-clicked link, and register the selection
+  preview script when it's enabled.
+- Optional host access: your NetBox instance URLs for the API features, and all websites for the
+  selection preview. Chrome asks when you turn these on, and access is returned when you turn the
+  API features off.
 
-The extension doesn't read page content or make network requests on its own.
-It only opens a tab with the search URL.
+Without the API features, the extension doesn't make network requests on its own; it only opens
+tabs with search URLs.
