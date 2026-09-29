@@ -16,6 +16,8 @@
   let timer = null;
   let lastQuery = "";
   let requestId = 0;
+  // Latest selection in an xterm.js terminal, reported by xterm-bridge.js.
+  let xtermSelection = null;
 
   const STYLE = `
     :host { all: initial; }
@@ -100,13 +102,17 @@
     card.style.left = `${left}px`;
   }
 
+  function usable(text) {
+    return text.length >= MIN_LENGTH && text.length <= MAX_LENGTH && !/\n/.test(text);
+  }
+
   function currentSelection() {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.rangeCount) {
-      return null;
+      return currentXtermSelection();
     }
     const text = selection.toString().trim();
-    if (text.length < MIN_LENGTH || text.length > MAX_LENGTH || /\n/.test(text)) {
+    if (!usable(text)) {
       return null;
     }
     const rect = selection.getRangeAt(0).getBoundingClientRect();
@@ -114,6 +120,14 @@
       return null;
     }
     return { text, rect };
+  }
+
+  function currentXtermSelection() {
+    const text = xtermSelection?.text?.trim() ?? "";
+    if (!usable(text) || !xtermSelection.rect) {
+      return null;
+    }
+    return { text, rect: xtermSelection.rect };
   }
 
   function check() {
@@ -163,6 +177,15 @@
 
   document.addEventListener("mouseup", schedule, true);
   document.addEventListener("keyup", schedule, true);
+  // The detail is a JSON string: objects don't cross from the page's world.
+  document.addEventListener("netbox-search-xterm-selection", (event) => {
+    try {
+      const { text, rect } = JSON.parse(event.detail);
+      xtermSelection = typeof text === "string" && text ? { text, rect } : null;
+    } catch {
+      xtermSelection = null;
+    }
+  });
   document.addEventListener(
     "mousedown",
     (event) => {

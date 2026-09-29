@@ -122,9 +122,26 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
-// Hover preview: a content script registered for all sites, only while the
-// option is on and the permission is granted.
-const PREVIEW_SCRIPT_ID = "preview";
+// Hover preview: content scripts registered for all sites, only while the
+// option is on and the permission is granted. The xterm bridge runs in the
+// page's world at document_start so it can hook xterm.js terminals (WebSSH).
+const PREVIEW_SCRIPTS = [
+  {
+    id: "preview",
+    matches: ["<all_urls>"],
+    js: ["src/preview.js"],
+    runAt: "document_idle",
+    allFrames: false,
+  },
+  {
+    id: "preview-xterm",
+    matches: ["<all_urls>"],
+    js: ["src/xterm-bridge.js"],
+    runAt: "document_start",
+    world: "MAIN",
+    allFrames: false,
+  },
+];
 
 async function syncPreviewScript() {
   const settings = await getSettings();
@@ -133,19 +150,17 @@ async function syncPreviewScript() {
     settings.hoverPreview &&
     settings.instances.length > 0 &&
     (await chrome.permissions.contains({ origins: ALL_SITES }));
-  const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [PREVIEW_SCRIPT_ID] });
-  if (wanted && !registered.length) {
-    await chrome.scripting.registerContentScripts([
-      {
-        id: PREVIEW_SCRIPT_ID,
-        matches: ["<all_urls>"],
-        js: ["src/preview.js"],
-        runAt: "document_idle",
-        allFrames: false,
-      },
-    ]);
-  } else if (!wanted && registered.length) {
-    await chrome.scripting.unregisterContentScripts({ ids: [PREVIEW_SCRIPT_ID] });
+  const ids = PREVIEW_SCRIPTS.map((script) => script.id);
+  const registered = new Set(
+    (await chrome.scripting.getRegisteredContentScripts({ ids })).map((script) => script.id),
+  );
+  if (wanted) {
+    const missing = PREVIEW_SCRIPTS.filter((script) => !registered.has(script.id));
+    if (missing.length) {
+      await chrome.scripting.registerContentScripts(missing);
+    }
+  } else if (registered.size) {
+    await chrome.scripting.unregisterContentScripts({ ids: [...registered] });
   }
 }
 

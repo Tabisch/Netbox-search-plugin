@@ -52,6 +52,10 @@ button next to each instance checks the URL and token.
   from the default instance. This asks for access to all websites, because it runs a small
   script on every page. Selected text is only sent to your NetBox instance. The preview is off
   by default and doesn't run on your NetBox instances themselves.
+  It also works in browser terminals built on [xterm.js](https://xtermjs.org/) that load it as a
+  global script, such as [WebSSH](https://github.com/huashengdun/webssh): select text in the
+  terminal (drag or double-click) to see the card. For this, a small helper script
+  (`src/xterm-bridge.js`) runs in the page itself and reports the terminal's selection.
 
 ## Installation (unpacked)
 
@@ -71,6 +75,7 @@ manifest.json      Manifest V3 definition
 src/background.js  Service worker: context menus, omnibox, single-match lookup, preview requests
 src/api.js         NetBox REST API client (no chrome APIs)
 src/preview.js     Content script for the selection preview (only registered when enabled)
+src/xterm-bridge.js Page script that reports xterm.js terminal selections to the preview
 src/netbox.js      NetBox URL building and IP/prefix/MAC/ASN detection (no chrome APIs)
 src/settings.js    Settings storage, migration, URL normalization and search helper
 src/options.*      Options page (instances, detection, menu object types)
