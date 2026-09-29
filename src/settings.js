@@ -18,6 +18,8 @@ export const DEFAULTS = {
   jumpToSingleMatch: true,
   // Also needs access to all sites, for the content script.
   hoverPreview: false,
+  // Preview in xterm.js terminals (WebSSH); only applies with hoverPreview.
+  xtermPreview: true,
 };
 
 // Match pattern for chrome.permissions covering an instance.

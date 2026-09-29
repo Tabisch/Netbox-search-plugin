@@ -55,7 +55,8 @@ button next to each instance checks the URL and token.
   It also works in browser terminals built on [xterm.js](https://xtermjs.org/) that load it as a
   global script, such as [WebSSH](https://github.com/huashengdun/webssh): select text in the
   terminal (drag or double-click) to see the card. For this, a small helper script
-  (`src/xterm-bridge.js`) runs in the page itself and reports the terminal's selection.
+  (`src/xterm-bridge.js`) runs in the page itself and reports the terminal's selection. This
+  part has its own option ("Also preview selections in browser terminals"), which is on by default.
 
 ## Installation (unpacked)
 

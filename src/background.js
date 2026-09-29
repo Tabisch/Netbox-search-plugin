@@ -124,43 +124,45 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Hover preview: content scripts registered for all sites, only while the
 // option is on and the permission is granted. The xterm bridge runs in the
-// page's world at document_start so it can hook xterm.js terminals (WebSSH).
-const PREVIEW_SCRIPTS = [
-  {
-    id: "preview",
-    matches: ["<all_urls>"],
-    js: ["src/preview.js"],
-    runAt: "document_idle",
-    allFrames: false,
-  },
-  {
-    id: "preview-xterm",
-    matches: ["<all_urls>"],
-    js: ["src/xterm-bridge.js"],
-    runAt: "document_start",
-    world: "MAIN",
-    allFrames: false,
-  },
-];
+// page's world at document_start so it can hook xterm.js terminals (WebSSH),
+// and has its own option.
+const PREVIEW_SCRIPT = {
+  id: "preview",
+  matches: ["<all_urls>"],
+  js: ["src/preview.js"],
+  runAt: "document_idle",
+  allFrames: false,
+};
+const XTERM_SCRIPT = {
+  id: "preview-xterm",
+  matches: ["<all_urls>"],
+  js: ["src/xterm-bridge.js"],
+  runAt: "document_start",
+  world: "MAIN",
+  allFrames: false,
+};
 
 async function syncPreviewScript() {
   const settings = await getSettings();
-  const wanted =
+  const preview =
     settings.apiEnabled &&
     settings.hoverPreview &&
     settings.instances.length > 0 &&
     (await chrome.permissions.contains({ origins: ALL_SITES }));
-  const ids = PREVIEW_SCRIPTS.map((script) => script.id);
+  const wanted = preview ? [PREVIEW_SCRIPT, ...(settings.xtermPreview ? [XTERM_SCRIPT] : [])] : [];
+  const wantedIds = new Set(wanted.map((script) => script.id));
   const registered = new Set(
-    (await chrome.scripting.getRegisteredContentScripts({ ids })).map((script) => script.id),
+    (await chrome.scripting.getRegisteredContentScripts({ ids: [PREVIEW_SCRIPT.id, XTERM_SCRIPT.id] })).map(
+      (script) => script.id,
+    ),
   );
-  if (wanted) {
-    const missing = PREVIEW_SCRIPTS.filter((script) => !registered.has(script.id));
-    if (missing.length) {
-      await chrome.scripting.registerContentScripts(missing);
-    }
-  } else if (registered.size) {
-    await chrome.scripting.unregisterContentScripts({ ids: [...registered] });
+  const extra = [...registered].filter((id) => !wantedIds.has(id));
+  if (extra.length) {
+    await chrome.scripting.unregisterContentScripts({ ids: extra });
+  }
+  const missing = wanted.filter((script) => !registered.has(script.id));
+  if (missing.length) {
+    await chrome.scripting.registerContentScripts(missing);
   }
 }
 

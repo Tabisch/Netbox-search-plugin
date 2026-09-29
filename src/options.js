@@ -19,6 +19,7 @@ const bgInput = document.getElementById("openInBackground");
 const apiInput = document.getElementById("apiEnabled");
 const jumpInput = document.getElementById("jumpToSingleMatch");
 const previewInput = document.getElementById("hoverPreview");
+const xtermInput = document.getElementById("xtermPreview");
 const status = document.getElementById("status");
 
 function showStatus(message, kind) {
@@ -81,6 +82,9 @@ function updateApiDependents() {
   for (const input of document.querySelectorAll("[data-needs-api]")) {
     input.disabled = !apiInput.checked;
   }
+  for (const input of document.querySelectorAll("[data-needs-preview]")) {
+    input.disabled ||= !previewInput.checked;
+  }
 }
 
 const settings = await getSettings();
@@ -96,8 +100,10 @@ bgInput.checked = settings.openInBackground;
 apiInput.checked = settings.apiEnabled;
 jumpInput.checked = settings.jumpToSingleMatch;
 previewInput.checked = settings.hoverPreview;
+xtermInput.checked = settings.xtermPreview;
 updateApiDependents();
 apiInput.addEventListener("change", updateApiDependents);
+previewInput.addEventListener("change", updateApiDependents);
 
 for (const type of OBJECT_TYPES) {
   const label = document.createElement("label");
@@ -211,6 +217,7 @@ form.addEventListener("submit", async (event) => {
     apiEnabled,
     jumpToSingleMatch: jumpInput.checked,
     hoverPreview,
+    xtermPreview: xtermInput.checked,
     menuTypes: [...typesBox.querySelectorAll("input:checked")].map((box) => box.value),
   });
   if (warning) {

@@ -93,6 +93,13 @@
         <div class="hint">Shows a small card with NetBox matches from the default instance below selected text.
           This asks for access to all websites so the preview can run on them. Selected text is only sent to your NetBox.</div>
       </div>
+      <div class="field">
+        <label class="check">
+          <input id="xtermPreview" type="checkbox" data-needs-api data-needs-preview>
+          Also preview selections in browser terminals (xterm.js, e.g. WebSSH)
+        </label>
+        <div class="hint">Runs a small helper script in each page to read the terminal's selection.</div>
+      </div>
 
       <h2>Context menu object types</h2>
       <div id="types" class="types"></div>
