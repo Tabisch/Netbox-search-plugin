@@ -1,6 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { apiRequests, authHeader, checkConnection, describe, searchApi, webUrl } from "../src/api.js";
+import {
+  apiRequests,
+  authHeader,
+  checkConnection,
+  describe,
+  ipCreateSuggestion,
+  ipCreateUrl,
+  mostSpecificPrefix,
+  searchApi,
+  webUrl,
+} from "../src/api.js";
 
 const base = "https://nb.example.com/netbox";
 
@@ -119,4 +129,59 @@ test("searchApi keeps detected results without fallback", async (t) => {
   assert.equal(fallback, false);
   assert.equal(total, 1);
   assert.equal(calls.length, 1);
+});
+
+const active = { value: "active", label: "Active" };
+const container = { value: "container", label: "Container" };
+
+test("mostSpecificPrefix picks the longest mask", () => {
+  const prefixes = [{ prefix: "10.0.0.0/8" }, { prefix: "10.1.2.0/24" }, { prefix: "10.1.0.0/16" }];
+  assert.equal(mostSpecificPrefix(prefixes).prefix, "10.1.2.0/24");
+  assert.equal(mostSpecificPrefix([]), null);
+});
+
+test("ipCreateUrl prefills address, VRF, tenant and status", () => {
+  const prefix = { prefix: "10.1.2.0/24", vrf: { id: 3 }, tenant: { id: 7 }, status: active };
+  const url = new URL(ipCreateUrl(base, "10.1.2.5", prefix));
+  assert.equal(url.pathname, "/netbox/ipam/ip-addresses/add/");
+  assert.deepEqual(Object.fromEntries(url.searchParams), { address: "10.1.2.5/24", vrf: "3", tenant: "7", status: "active" });
+  // A given mask wins; containers have no IP status; missing fields are left out.
+  const other = new URL(ipCreateUrl(base, "10.1.2.5/25", { prefix: "10.0.0.0/8", vrf: null, tenant: null, status: container }));
+  assert.deepEqual(Object.fromEntries(other.searchParams), { address: "10.1.2.5/25" });
+});
+
+test("ipCreateSuggestion uses the most specific prefix for a new IP", async (t) => {
+  const calls = stubFetch(t, (url) => {
+    if (url.pathname.endsWith("/ipam/prefixes/")) {
+      return json({
+        count: 2,
+        results: [
+          { id: 1, display: "10.0.0.0/8", prefix: "10.0.0.0/8", status: container, tenant: { id: 1, display: "Corp" } },
+          { id: 2, display: "10.1.2.0/24", prefix: "10.1.2.0/24", status: active, vrf: { id: 3, display: "Blue" }, tenant: { id: 7, display: "Ops" } },
+        ],
+      });
+    }
+    // The same address exists, but in the global table, not in VRF Blue.
+    return json({ count: 1, results: [{ id: 9, address: "10.1.2.5/24", vrf: null }] });
+  });
+  const suggestion = await ipCreateSuggestion(base, "", "10.1.2.5");
+  assert.equal(suggestion.address, "10.1.2.5");
+  assert.equal(suggestion.prefix, "10.1.2.0/24");
+  assert.equal(suggestion.detail, "Active · Blue · Ops");
+  assert.equal(suggestion.url, `${base}/ipam/ip-addresses/add/?address=10.1.2.5%2F24&vrf=3&tenant=7&status=active`);
+  assert.equal(calls.find((c) => c.url.pathname.endsWith("/prefixes/")).url.searchParams.get("contains"), "10.1.2.5");
+});
+
+test("ipCreateSuggestion skips existing IPs, IPs outside prefixes and other queries", async (t) => {
+  let ips = [{ id: 9, address: "10.1.2.5/24", vrf: null }];
+  let prefixes = [{ id: 2, prefix: "10.1.2.0/24", vrf: null }];
+  const calls = stubFetch(t, (url) => json({ results: url.pathname.endsWith("/prefixes/") ? prefixes : ips }));
+  assert.equal(await ipCreateSuggestion(base, "", "10.1.2.5"), null);
+  ips = [];
+  prefixes = [];
+  assert.equal(await ipCreateSuggestion(base, "", "10.1.2.5"), null);
+  const before = calls.length;
+  assert.equal(await ipCreateSuggestion(base, "", "10.1.2.0/24"), null);
+  assert.equal(await ipCreateSuggestion(base, "", "sw01"), null);
+  assert.equal(calls.length, before);
 });

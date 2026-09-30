@@ -52,6 +52,12 @@ button next to each instance checks the URL and token.
   from the default instance. This asks for access to all websites, because it runs a small
   script on every page. Selected text is only sent to your NetBox instance. The preview is off
   by default and doesn't run on your NetBox instances themselves.
+- **Create missing IP addresses:** when the selected text is an IP address that isn't in NetBox
+  yet but lies inside a known prefix, the preview card offers **Create IP address**. It opens
+  NetBox's add form prefilled from the most specific containing prefix: the address with the
+  prefix's mask (unless you selected one), the VRF, the tenant and the status (active, reserved or
+  deprecated; container prefixes keep NetBox's default). An address that exists in a different
+  VRF still counts as missing.
 
 ## Installation (unpacked)
 
