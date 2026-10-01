@@ -166,6 +166,76 @@ async function runSearch(instanceUrl, token, requests, limit, signal) {
   return { total, results, errors };
 }
 
+// IP address statuses that have a prefix status of the same name. "container"
+// has no IP equivalent, so NetBox's default status is left in place.
+const IP_STATUSES = ["active", "reserved", "deprecated"];
+
+function maskLength(prefix) {
+  return Number(String(prefix.prefix ?? "").split("/")[1] ?? -1);
+}
+
+// The longest (most specific) prefix, or null.
+export function mostSpecificPrefix(prefixes) {
+  let best = null;
+  for (const prefix of prefixes) {
+    if (!best || maskLength(prefix) > maskLength(best)) {
+      best = prefix;
+    }
+  }
+  return best;
+}
+
+// The NetBox "add IP address" form, prefilled from `prefix`: the address
+// (with the prefix's mask unless one was given), VRF, tenant and status.
+// NetBox's edit views take initial values from the query string.
+export function ipCreateUrl(instanceUrl, address, prefix) {
+  const url = new URL(`${instanceUrl}/ipam/ip-addresses/add/`);
+  const withMask = address.includes("/") ? address : `${address}/${maskLength(prefix)}`;
+  url.searchParams.set("address", withMask);
+  if (prefix.vrf?.id != null) {
+    url.searchParams.set("vrf", prefix.vrf.id);
+  }
+  if (prefix.tenant?.id != null) {
+    url.searchParams.set("tenant", prefix.tenant.id);
+  }
+  const status = prefix.status?.value ?? prefix.status;
+  if (IP_STATUSES.includes(status)) {
+    url.searchParams.set("status", status);
+  }
+  return url.href;
+}
+
+// If `query` is an IP address that isn't in NetBox yet but lies in a known
+// prefix, returns { address, prefix, detail, url } with a link to create it,
+// prefilled from the most specific containing prefix. Otherwise null.
+export async function ipCreateSuggestion(instanceUrl, token, query, { signal } = {}) {
+  const detected = detectQuery(query);
+  if (detected?.kind !== "IP address") {
+    return null;
+  }
+  const address = detected.params.address;
+  const host = address.split("/")[0];
+  const [prefixes, existing] = await Promise.all([
+    apiGet(instanceUrl, token, "/ipam/prefixes/", { contains: host, limit: 100 }, signal),
+    apiGet(instanceUrl, token, "/ipam/ip-addresses/", { address: host, limit: 100 }, signal),
+  ]);
+  const prefix = mostSpecificPrefix(prefixes.results ?? []);
+  if (!prefix) {
+    return null;
+  }
+  // The same address in another VRF is a different IP address object.
+  const vrfId = prefix.vrf?.id ?? null;
+  if ((existing.results ?? []).some((ip) => (ip.vrf?.id ?? null) === vrfId)) {
+    return null;
+  }
+  return {
+    address,
+    prefix: prefix.display ?? prefix.prefix,
+    detail: describe({ status: prefix.status, vrf: prefix.vrf, tenant: prefix.tenant }),
+    url: ipCreateUrl(instanceUrl, address, prefix),
+  };
+}
+
 // Returns NetBox's version string, or throws ApiError. /api/status/ can be
 // public, so a device list request confirms that we can actually read data.
 export async function checkConnection(instanceUrl, token, signal) {

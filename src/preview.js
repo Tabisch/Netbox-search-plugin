@@ -44,12 +44,17 @@
     .title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .type { color: #007c89; font-weight: normal; font-size: 11px; margin-left: 6px; }
     .detail { color: #59636e; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .create { margin-top: 4px; padding-top: 4px; border-top: 1px solid #d1d9e0; }
+    .create:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+    .create .title { color: #007c89; }
     button { all: unset; cursor: pointer; color: #59636e; padding: 0 2px; }
     @media (prefers-color-scheme: dark) {
       .card { color: #e6edf3; background: #1b1f24; border-color: #3d444d; }
       .head, .foot, .detail, button { color: #9198a1; }
       a, .type { color: #1fa3b1; }
       li a:hover { background: #262c33; }
+      .create { border-top-color: #3d444d; }
+      .create .title { color: #1fa3b1; }
     }
   `;
 
@@ -80,6 +85,17 @@
         ]),
       ]),
     );
+    // An IP address that isn't in NetBox yet: link to the prefilled add form.
+    if (data.create) {
+      items.push(
+        el("li", { className: "create" }, [
+          el("a", { href: data.create.url, target: "_blank", rel: "noopener" }, [
+            el("div", { className: "title", textContent: `Create IP address ${data.create.address}` }),
+            el("div", { className: "detail", textContent: [`In ${data.create.prefix}`, data.create.detail].filter(Boolean).join(" · ") }),
+          ]),
+        ]),
+      );
+    }
     const more = data.total > data.results.length ? `All ${data.total} results →` : "Open search →";
     const card = el("div", { className: "card" }, [
       el("div", { className: "head" }, [el("span", { textContent: `NetBox · ${data.instanceName}` }), close]),
@@ -138,7 +154,7 @@
     }
     reply.then((data) => {
       // Ignore stale answers and selections that changed meanwhile.
-      if (id !== requestId || !data?.results?.length) {
+      if (id !== requestId || !(data?.results?.length || data?.create)) {
         return;
       }
       if (currentSelection()?.text !== current.text) {
