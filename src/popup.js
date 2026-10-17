@@ -61,19 +61,20 @@ function setActive(index) {
 function renderResults(results) {
   resultsList.replaceChildren(
     ...results.map((result) => {
-      const title = document.createElement("div");
-      title.className = "title";
-      const type = document.createElement("span");
+      // Type above the title, so a long name can't push it out of view.
+      const type = document.createElement("div");
       type.className = "type";
       type.textContent = result.typeLabel;
-      title.append(result.display, type);
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = result.name ? `${result.display} — ${result.name}` : result.display;
       const detail = document.createElement("div");
       detail.className = "detail";
       detail.textContent = result.detail;
       const link = document.createElement("a");
       link.href = result.url;
       link.role = "option";
-      link.append(title, detail);
+      link.append(type, title, detail);
       link.addEventListener("click", (event) => {
         event.preventDefault();
         openUrl(result.url);

@@ -53,7 +53,7 @@
     li a { display: block; padding: 4px 12px; color: inherit; }
     li a:hover { background: #f0f3f6; text-decoration: none; }
     .title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .type { color: #007c89; font-weight: normal; font-size: 11px; margin-left: 6px; }
+    .type { color: #007c89; font-size: 11px; }
     .detail { color: #59636e; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .create { margin-top: 4px; padding-top: 4px; border-top: 1px solid #d1d9e0; }
     .create:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -91,7 +91,9 @@
     const items = data.results.map((r) =>
       el("li", {}, [
         el("a", { href: r.url, target: "_blank", rel: "noopener" }, [
-          el("div", { className: "title" }, [r.display, el("span", { className: "type", textContent: r.typeLabel })]),
+          // Type above the title, so a long name can't push it out of view.
+          el("div", { className: "type", textContent: r.typeLabel }),
+          el("div", { className: "title", textContent: r.name ? `${r.display} — ${r.name}` : r.display }),
           el("div", { className: "detail", textContent: r.detail }),
         ]),
       ]),

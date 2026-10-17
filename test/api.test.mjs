@@ -8,6 +8,7 @@ import {
   ipCreateSuggestion,
   ipCreateUrl,
   mostSpecificPrefix,
+  nameFor,
   searchApi,
   webUrl,
 } from "../src/api.js";
@@ -51,6 +52,13 @@ test("web URL prefers display_url and falls back to the API url", () => {
   assert.equal(webUrl({ url: `${base}/api/dcim/devices/1/` }, base), `${base}/dcim/devices/1/`);
 });
 
+test("name prefers the description, then the DNS name", () => {
+  assert.equal(nameFor({ description: "Web server", dns_name: "web01.example.com" }, "10.0.0.1/24"), "Web server");
+  assert.equal(nameFor({ description: "", dns_name: "web01.example.com" }, "10.0.0.1/24"), "web01.example.com");
+  assert.equal(nameFor({ description: "", dns_name: "" }, "10.0.0.1/24"), null);
+  assert.equal(nameFor({ description: "sw01" }, "sw01"), null);
+});
+
 test("describe summarizes common fields", () => {
   assert.equal(
     describe({ status: { value: "active", label: "Active" }, site: { display: "HQ" }, tenant: { display: "Ops" }, vid: 10 }),
@@ -71,7 +79,7 @@ test("searchApi sends auth, merges results and counts", async (t) => {
   });
   const { total, results, errors } = await searchApi(base, "abc", "sw01", { limit: 5 });
   assert.equal(total, 7);
-  assert.deepEqual(results, [{ typeLabel: "Devices", display: "sw01", detail: "HQ", url: `${base}/dcim/devices/1/` }]);
+  assert.deepEqual(results, [{ typeLabel: "Devices", display: "sw01", name: null, detail: "HQ", url: `${base}/dcim/devices/1/` }]);
   assert.deepEqual(errors, []);
   const deviceCall = calls.find((c) => c.url.pathname === "/netbox/api/dcim/devices/");
   assert.equal(deviceCall.url.searchParams.get("q"), "sw01");

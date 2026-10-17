@@ -116,8 +116,16 @@ export function describe(object) {
   return [...new Set(parts)].join(" · ");
 }
 
+// A name to show next to the object: its description, else its DNS name (IP
+// addresses). Null if there is none or it just repeats `display`.
+export function nameFor(object, display) {
+  const name = (object.description || object.dns_name || "").trim();
+  return name && name !== display ? name : null;
+}
+
 // Runs a search against the API. Returns { total, results, errors, fallback }
-// where results are { typeLabel, display, detail, url } sorted by object type.
+// where results are { typeLabel, display, name, detail, url } sorted by object
+// type.
 // If a detected IP/prefix/MAC/ASN matches nothing, the search is repeated as a
 // global search and `fallback` is true.
 export async function searchApi(instanceUrl, token, query, { type, smart, limit = 5, signal } = {}) {
@@ -151,9 +159,11 @@ async function runSearch(instanceUrl, token, requests, limit, signal) {
     const { req, data } = outcome.value;
     total += data.count ?? data.results?.length ?? 0;
     for (const object of data.results ?? []) {
+      const display = object.display ?? object.name ?? String(object.id);
       results.push({
         typeLabel: req.label,
-        display: object.display ?? object.name ?? String(object.id),
+        display,
+        name: nameFor(object, display),
         detail: describe(object),
         url: webUrl(object, instanceUrl),
       });
