@@ -68,6 +68,13 @@
           Open results in a background tab
         </label>
       </div>
+      <div class="field">
+        <label class="check">
+          <input id="previewInFields" type="checkbox">
+          Also preview text selected in text boxes
+        </label>
+        <div class="hint">Applies to the selection preview below. Includes input fields and text areas; password fields are always left out.</div>
+      </div>
 
       <h2>NetBox API</h2>
       <p class="hint" style="margin-top:0">These features read data from your instances through the NetBox API, using the
@@ -92,13 +99,6 @@
         </label>
         <div class="hint">Shows a small card with NetBox matches from the default instance below selected text.
           This asks for access to all websites so the preview can run on them. Selected text is only sent to your NetBox.</div>
-      </div>
-      <div class="field">
-        <label class="check">
-          <input id="previewInFields" type="checkbox" data-needs-api>
-          Also preview text selected in text boxes
-        </label>
-        <div class="hint">Includes input fields and text areas. Password fields are always left out.</div>
       </div>
 
       <h2>Context menu object types</h2>
