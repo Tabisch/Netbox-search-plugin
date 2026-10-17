@@ -134,16 +134,20 @@ async function syncPreviewScript() {
     settings.instances.length > 0 &&
     (await chrome.permissions.contains({ origins: ALL_SITES }));
   const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [PREVIEW_SCRIPT_ID] });
+  // All frames, so selections inside framesets and iframes (e.g. switch web
+  // interfaces) get a preview too.
+  const script = {
+    id: PREVIEW_SCRIPT_ID,
+    matches: ["<all_urls>"],
+    js: ["src/preview.js"],
+    runAt: "document_idle",
+    allFrames: true,
+  };
   if (wanted && !registered.length) {
-    await chrome.scripting.registerContentScripts([
-      {
-        id: PREVIEW_SCRIPT_ID,
-        matches: ["<all_urls>"],
-        js: ["src/preview.js"],
-        runAt: "document_idle",
-        allFrames: false,
-      },
-    ]);
+    await chrome.scripting.registerContentScripts([script]);
+  } else if (wanted && !registered[0].allFrames) {
+    // Registered by an older version with top frames only.
+    await chrome.scripting.updateContentScripts([script]);
   } else if (!wanted && registered.length) {
     await chrome.scripting.unregisterContentScripts({ ids: [PREVIEW_SCRIPT_ID] });
   }
