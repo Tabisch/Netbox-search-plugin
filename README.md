@@ -51,7 +51,9 @@ button next to each instance checks the URL and token.
 - **Selection preview:** select short text on any web page to see a card with NetBox matches
   from the default instance. This asks for access to all websites, because it runs a small
   script on every page. Selected text is only sent to your NetBox instance. The preview is off
-  by default and doesn't run on your NetBox instances themselves.
+  by default and doesn't run on your NetBox instances themselves. Text selected in input fields
+  and text areas is only previewed when **Also preview text selected in text boxes** is on (off by
+  default); password fields are always left out.
 - **Create missing IP addresses:** when the selected text is an IP address that isn't in NetBox
   yet but lies inside a known prefix, the preview card offers **Create IP address**. It opens
   NetBox's add form prefilled from the most specific containing prefix: the address with the

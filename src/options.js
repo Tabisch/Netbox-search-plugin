@@ -19,6 +19,7 @@ const bgInput = document.getElementById("openInBackground");
 const apiInput = document.getElementById("apiEnabled");
 const jumpInput = document.getElementById("jumpToSingleMatch");
 const previewInput = document.getElementById("hoverPreview");
+const fieldsInput = document.getElementById("previewInFields");
 const status = document.getElementById("status");
 
 function showStatus(message, kind) {
@@ -96,6 +97,7 @@ bgInput.checked = settings.openInBackground;
 apiInput.checked = settings.apiEnabled;
 jumpInput.checked = settings.jumpToSingleMatch;
 previewInput.checked = settings.hoverPreview;
+fieldsInput.checked = settings.previewInFields;
 updateApiDependents();
 apiInput.addEventListener("change", updateApiDependents);
 
@@ -211,6 +213,7 @@ form.addEventListener("submit", async (event) => {
     apiEnabled,
     jumpToSingleMatch: jumpInput.checked,
     hoverPreview,
+    previewInFields: fieldsInput.checked,
     menuTypes: [...typesBox.querySelectorAll("input:checked")].map((box) => box.value),
   });
   if (warning) {

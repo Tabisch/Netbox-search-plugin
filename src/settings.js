@@ -18,6 +18,8 @@ export const DEFAULTS = {
   jumpToSingleMatch: true,
   // Also needs access to all sites, for the content script.
   hoverPreview: false,
+  // Also preview text selected inside input fields and text areas.
+  previewInFields: false,
 };
 
 // Match pattern for chrome.permissions covering an instance.

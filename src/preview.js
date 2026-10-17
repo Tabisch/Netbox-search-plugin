@@ -16,6 +16,17 @@
   let timer = null;
   let lastQuery = "";
   let requestId = 0;
+  let inFields = false;
+
+  // "Also preview text selected in text boxes" from the options.
+  chrome.storage.sync.get({ previewInFields: false }).then(({ previewInFields }) => {
+    inFields = previewInFields;
+  }, () => {});
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes.previewInFields) {
+      inFields = Boolean(changes.previewInFields.newValue);
+    }
+  });
 
   const STYLE = `
     :host { all: initial; }
@@ -116,16 +127,51 @@
     card.style.left = `${left}px`;
   }
 
-  function currentSelection() {
+  // Text selected inside an input or textarea isn't part of the page
+  // selection, so it's read from the field itself. Never from password fields.
+  function fieldSelection() {
+    if (!inFields) {
+      return null;
+    }
+    let field = document.activeElement;
+    while (field?.shadowRoot?.activeElement) {
+      field = field.shadowRoot.activeElement;
+    }
+    const isField = field instanceof HTMLTextAreaElement || (field instanceof HTMLInputElement && field.type !== "password");
+    if (!isField) {
+      return null;
+    }
+    let start, end;
+    try {
+      ({ selectionStart: start, selectionEnd: end } = field);
+    } catch {
+      // Input types without text selection, e.g. number.
+      return null;
+    }
+    if (start == null || start === end) {
+      return null;
+    }
+    return { text: field.value.slice(start, end), rect: field.getBoundingClientRect() };
+  }
+
+  function pageSelection() {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.rangeCount) {
       return null;
     }
-    const text = selection.toString().trim();
+    return { text: selection.toString(), rect: selection.getRangeAt(0).getBoundingClientRect() };
+  }
+
+  function currentSelection() {
+    const selected = fieldSelection() ?? pageSelection();
+    if (!selected) {
+      return null;
+    }
+    const text = selected.text.trim();
     if (text.length < MIN_LENGTH || text.length > MAX_LENGTH || /\n/.test(text)) {
       return null;
     }
-    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    const { rect } = selected;
     if (!rect.width && !rect.height) {
       return null;
     }
