@@ -29,7 +29,8 @@
     #message:empty { display: none; }
     #message.error { color: var(--error); }
     .footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
-    .footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #hint { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; }
+    #hint:hover { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -47,7 +48,7 @@
   <ul id="results" role="listbox" aria-label="Matches"></ul>
   <div id="message" role="status"></div>
   <div class="footer">
-    <span id="hint"></span>
+    <a href="#" id="hint"></a>
     <a href="#" id="options">Options</a>
   </div>
   <script type="module" src="popup.js"></script>

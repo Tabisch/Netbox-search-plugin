@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NetBox Search",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Search your NetBox instances from the context menu, the toolbar or the address bar, with optional live results.",
   "permissions": ["contextMenus", "storage", "scripting", "activeTab"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],

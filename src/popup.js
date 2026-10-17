@@ -141,9 +141,22 @@ async function openUrl(url) {
 function updateHint() {
   const instance = selectedInstance();
   hint.textContent = instance ? instance.url : "No instance configured";
-  hint.title = hint.textContent;
+  hint.href = instance ? instance.url : "#";
+  hint.title = instance ? `Open ${instance.url}` : "Open the options";
 }
 updateHint();
+
+// The instance URL opens its start page.
+hint.addEventListener("click", (event) => {
+  event.preventDefault();
+  const instance = selectedInstance();
+  if (instance) {
+    openUrl(instance.url);
+  } else {
+    chrome.runtime.openOptionsPage();
+    window.close();
+  }
+});
 
 instanceSelect.addEventListener("change", () => {
   updateHint();
