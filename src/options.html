@@ -101,6 +101,16 @@
           This asks for access to all websites so the preview can run on them. Selected text is only sent to your NetBox.</div>
       </div>
 
+      <div class="field">
+        <label class="check">
+          <input id="prefixChecks" type="checkbox" data-needs-api>
+          Warn about misconfigured prefixes
+        </label>
+        <div class="hint">When a prefix is searched in the popup or previewed, checks it for duplicates in the same VRF,
+          a parent prefix in a different VRF, and IP addresses whose mask doesn't match the prefix length.
+          This makes a few extra API requests per prefix.</div>
+      </div>
+
       <h2>Context menu object types</h2>
       <div id="types" class="types"></div>
 

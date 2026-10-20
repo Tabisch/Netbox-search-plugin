@@ -1,5 +1,5 @@
-import { searchApi } from "./api.js";
-import { ALL, OBJECT_TYPES } from "./netbox.js";
+import { prefixIssues, searchApi } from "./api.js";
+import { ALL, OBJECT_TYPES, detectQuery } from "./netbox.js";
 import { findInstance, getSettings, getTokens, hasApiAccess } from "./settings.js";
 
 const form = document.getElementById("form");
@@ -7,6 +7,7 @@ const query = document.getElementById("query");
 const instanceSelect = document.getElementById("instance");
 const typeSelect = document.getElementById("type");
 const resultsList = document.getElementById("results");
+const issuesList = document.getElementById("issues");
 const message = document.getElementById("message");
 const hint = document.getElementById("hint");
 
@@ -88,18 +89,60 @@ function renderResults(results) {
   active = -1;
 }
 
+// Misconfigured prefix warnings, shown above the results.
+function renderIssues(issues) {
+  issuesList.replaceChildren(
+    ...issues.map((issue) => {
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = `⚠ ${issue.prefix}`;
+      const detail = document.createElement("div");
+      detail.className = "detail";
+      detail.textContent = issue.message;
+      detail.title = issue.message;
+      const link = document.createElement("a");
+      link.href = issue.url;
+      link.append(title, detail);
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        openUrl(issue.url);
+      });
+      const item = document.createElement("li");
+      item.append(link);
+      return item;
+    }),
+  );
+}
+
+async function checkPrefix(instance, text, signal) {
+  renderIssues([]);
+  if (!settings.prefixChecks || detectQuery(text)?.kind !== "Prefix") {
+    return;
+  }
+  try {
+    const issues = await prefixIssues(instance.url, tokens[instance.id], text, { signal });
+    if (!signal.aborted) {
+      renderIssues(issues);
+    }
+  } catch {
+    // The check is best effort; the search results are still shown.
+  }
+}
+
 async function runLiveSearch() {
   controller?.abort();
   const text = query.value.trim();
   const instance = selectedInstance();
   if (!text || !instance || !(await hasApiAccess(settings, instance))) {
     renderResults([]);
+    renderIssues([]);
     setMessage("");
     return;
   }
   controller = new AbortController();
   const { signal } = controller;
   setMessage("Searching…");
+  checkPrefix(instance, text, signal);
   try {
     const { total, results, errors } = await searchApi(instance.url, tokens[instance.id], text, {
       type: typeSelect.value,

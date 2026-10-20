@@ -9,6 +9,7 @@
   --hover: #f0f3f6;
   --error: #cf222e;
   --ok: #1a7f37;
+  --warning: #9a6700;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -21,6 +22,7 @@
     --hover: #262c33;
     --error: #ff7b72;
     --ok: #3fb950;
+    --warning: #d29922;
   }
 }
 * { box-sizing: border-box; }

@@ -60,6 +60,17 @@ button next to each instance checks the URL and token.
   prefix's mask (unless you selected one), the VRF, the tenant and the status (active, reserved or
   deprecated; container prefixes keep NetBox's default). An address that exists in a different
   VRF still counts as missing.
+- **Misconfigured prefix warnings:** when **Warn about misconfigured prefixes** is on (off by
+  default), searching or previewing a prefix such as `10.1.2.0/24` checks it and shows a warning
+  above the results for:
+  - **Duplicates:** the same prefix exists more than once in the same VRF.
+  - **VRF mismatch:** the closest enclosing prefix is in a different VRF. Parents in the global
+    table are fine, since that's how shared containers are usually modelled.
+  - **Mask mismatch:** IP addresses inside the prefix (same VRF) whose mask differs from the
+    prefix length, e.g. a `/32` inside a `/24`. Container and pool prefixes are skipped.
+
+  Each warning links to the matching NetBox list. Host bits (`10.1.2.5/24`) aren't checked, because
+  NetBox always saves prefixes as their network address.
 
 ## Installation (unpacked)
 

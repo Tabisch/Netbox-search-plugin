@@ -58,6 +58,8 @@
     .create { margin-top: 4px; padding-top: 4px; border-top: 1px solid #d1d9e0; }
     .create:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
     .create .title { color: #007c89; }
+    .issue + li:not(.issue) { margin-top: 4px; padding-top: 4px; border-top: 1px solid #d1d9e0; }
+    .issue .title { color: #9a6700; }
     button { all: unset; cursor: pointer; color: #59636e; padding: 0 2px; }
     @media (prefers-color-scheme: dark) {
       .card { color: #e6edf3; background: #1b1f24; border-color: #3d444d; }
@@ -66,6 +68,8 @@
       li a:hover { background: #262c33; }
       .create { border-top-color: #3d444d; }
       .create .title { color: #1fa3b1; }
+      .issue + li:not(.issue) { border-top-color: #3d444d; }
+      .issue .title { color: #d29922; }
     }
   `;
 
@@ -88,7 +92,16 @@
     const close = el("button", { textContent: "✕", title: "Close" });
     close.addEventListener("click", hide);
 
-    const items = data.results.map((r) =>
+    // Misconfigured prefix warnings go first, so they aren't missed.
+    const issues = (data.issues ?? []).map((issue) =>
+      el("li", { className: "issue" }, [
+        el("a", { href: issue.url, target: "_blank", rel: "noopener" }, [
+          el("div", { className: "title", textContent: `⚠ ${issue.prefix}` }),
+          el("div", { className: "detail", textContent: issue.message, title: issue.message }),
+        ]),
+      ]),
+    );
+    const results = data.results.map((r) =>
       el("li", {}, [
         el("a", { href: r.url, target: "_blank", rel: "noopener" }, [
           // Type above the title, so a long name can't push it out of view.
@@ -98,6 +111,7 @@
         ]),
       ]),
     );
+    const items = [...issues, ...results];
     // An IP address that isn't in NetBox yet: link to the prefilled add form.
     if (data.create) {
       items.push(
@@ -202,7 +216,7 @@
     }
     reply.then((data) => {
       // Ignore stale answers and selections that changed meanwhile.
-      if (id !== requestId || !(data?.results?.length || data?.create)) {
+      if (id !== requestId || !(data?.results?.length || data?.create || data?.issues?.length)) {
         return;
       }
       if (currentSelection()?.text !== current.text) {
