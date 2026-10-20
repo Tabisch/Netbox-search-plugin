@@ -17,14 +17,25 @@
   let lastQuery = "";
   let requestId = 0;
   let inFields = false;
+  let atPointer = false;
+  // Where the mouse was released, for mouse selections; null after a key.
+  let pointer = null;
 
-  // "Also preview text selected in text boxes" from the options.
-  chrome.storage.sync.get({ previewInFields: false }).then(({ previewInFields }) => {
-    inFields = previewInFields;
+  // "Also preview text selected in text boxes" and "Show the preview at the
+  // mouse pointer" from the options.
+  chrome.storage.sync.get({ previewInFields: false, previewAtPointer: false }).then((stored) => {
+    inFields = stored.previewInFields;
+    atPointer = stored.previewAtPointer;
   }, () => {});
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync" && changes.previewInFields) {
+    if (area !== "sync") {
+      return;
+    }
+    if (changes.previewInFields) {
       inFields = Boolean(changes.previewInFields.newValue);
+    }
+    if (changes.previewAtPointer) {
+      atPointer = Boolean(changes.previewAtPointer.newValue);
     }
   });
 
@@ -173,6 +184,12 @@
     if (text.length < MIN_LENGTH || text.length > MAX_LENGTH || /\n/.test(text)) {
       return null;
     }
+    // Web terminals like Termix (xterm.js) draw their selection themselves, so
+    // the selection's rect is that of a hidden helper element, usually at the
+    // bottom line. The mouse pointer is where the selection actually ended.
+    if (atPointer && pointer) {
+      return { text, rect: new DOMRect(pointer.x, pointer.y - 10, 0, 20) };
+    }
     const { rect } = selected;
     if (!rect.width && !rect.height) {
       return null;
@@ -221,6 +238,7 @@
     if (host && event.composedPath().includes(host)) {
       return;
     }
+    pointer = event.type === "mouseup" ? { x: event.clientX, y: event.clientY } : null;
     clearTimeout(timer);
     timer = setTimeout(check, DELAY_MS);
   }

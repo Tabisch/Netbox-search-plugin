@@ -20,6 +20,8 @@ export const DEFAULTS = {
   hoverPreview: false,
   // Also preview text selected inside input fields and text areas.
   previewInFields: false,
+  // Place the preview at the mouse pointer instead of below the selection.
+  previewAtPointer: false,
 };
 
 // Match pattern for chrome.permissions covering an instance.
