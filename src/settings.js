@@ -20,6 +20,8 @@ export const DEFAULTS = {
   hoverPreview: false,
   // Also preview text selected inside input fields and text areas.
   previewInFields: false,
+  // Warn about misconfigured prefixes in the popup and selection preview.
+  prefixChecks: false,
 };
 
 // Match pattern for chrome.permissions covering an instance.

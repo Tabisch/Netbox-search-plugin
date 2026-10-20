@@ -9,6 +9,7 @@ import {
   ipCreateUrl,
   mostSpecificPrefix,
   nameFor,
+  prefixIssues,
   searchApi,
   webUrl,
 } from "../src/api.js";
@@ -192,4 +193,51 @@ test("ipCreateSuggestion skips existing IPs, IPs outside prefixes and other quer
   assert.equal(await ipCreateSuggestion(base, "", "10.1.2.0/24"), null);
   assert.equal(await ipCreateSuggestion(base, "", "sw01"), null);
   assert.equal(calls.length, before);
+});
+
+test("prefixIssues finds duplicates, foreign-VRF parents and mask mismatches", async (t) => {
+  const blue = { id: 3, display: "Blue" };
+  const red = { id: 4, display: "Red" };
+  const calls = stubFetch(t, (url) => {
+    if (url.pathname.endsWith("/ipam/prefixes/")) {
+      return json({
+        results: [
+          { id: 1, prefix: "10.0.0.0/8", status: container, vrf: null },
+          { id: 2, prefix: "10.1.0.0/16", status: container, vrf: red },
+          { id: 5, prefix: "10.1.2.0/24", status: active, vrf: blue, display_url: `${base}/ipam/prefixes/5/` },
+          { id: 6, prefix: "10.1.2.0/24", status: active, vrf: blue },
+        ],
+      });
+    }
+    return json({ count: url.searchParams.has("mask_length") ? 4 : 6, results: [] });
+  });
+  const issues = await prefixIssues(base, "", "10.1.2.0/24");
+  assert.deepEqual(issues.map((i) => i.message), [
+    "Exists 2 times in VRF Blue",
+    "In VRF Blue, but its parent 10.1.0.0/16 is in VRF Red",
+    "2 IP addresses in VRF Blue with a mask other than /24",
+  ]);
+  assert.equal(issues[0].url, `${base}/ipam/prefixes/?prefix=10.1.2.0%2F24&vrf_id=3`);
+  assert.equal(issues[1].url, `${base}/ipam/prefixes/5/`);
+  assert.equal(issues[2].url, `${base}/ipam/ip-addresses/?parent=10.1.2.0%2F24&vrf_id=3`);
+  assert.equal(calls[0].url.searchParams.get("contains"), "10.1.2.0/24");
+  const masked = calls.find((c) => c.url.searchParams.has("mask_length"));
+  assert.equal(masked.url.searchParams.get("mask_length"), "24");
+});
+
+test("prefixIssues accepts global parents, skips containers and non-prefix queries", async (t) => {
+  const calls = stubFetch(t, (url) =>
+    json(url.pathname.endsWith("/ipam/prefixes/")
+      ? { results: [
+        { id: 1, prefix: "10.0.0.0/8", status: container, vrf: null },
+        { id: 2, prefix: "10.1.0.0/16", status: container, vrf: { id: 3, display: "Blue" } },
+      ] }
+      : { count: 5, results: [] }),
+  );
+  assert.deepEqual(await prefixIssues(base, "", "10.1.0.0/16"), []);
+  // Only the prefix lookup: containers aren't checked for IP masks.
+  assert.equal(calls.length, 1);
+  assert.deepEqual(await prefixIssues(base, "", "10.1.2.5"), []);
+  assert.deepEqual(await prefixIssues(base, "", "sw01"), []);
+  assert.equal(calls.length, 1);
 });

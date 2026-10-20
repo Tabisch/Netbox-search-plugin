@@ -1,4 +1,4 @@
-import { ipCreateSuggestion, searchApi } from "./api.js";
+import { ipCreateSuggestion, prefixIssues, searchApi } from "./api.js";
 import { ALL, OBJECT_TYPES, buildSearchUrl } from "./netbox.js";
 import {
   ALL_SITES,
@@ -188,18 +188,21 @@ async function previewLookup(query, senderUrl) {
   let value;
   try {
     // An IP address that isn't in NetBox yet gets a "create" link, prefilled
-    // from its prefix. A failed lookup just leaves the link out.
-    const [{ total, results, fallback }, create] = await Promise.all([
+    // from its prefix. A failed lookup just leaves the link out, and so does a
+    // failed prefix check.
+    const [{ total, results, fallback }, create, issues] = await Promise.all([
       searchApi(instance.url, tokens[instance.id], query, { smart: settings.smartDetect, limit: 3 }),
       ipCreateSuggestion(instance.url, tokens[instance.id], query).catch(() => null),
+      settings.prefixChecks ? prefixIssues(instance.url, tokens[instance.id], query).catch(() => []) : [],
     ]);
-    if (total || create) {
+    if (total || create || issues.length) {
       value = {
         instanceName: instanceLabel(instance),
         total,
         results: results.slice(0, 5),
         searchUrl: buildSearchUrl(instance.url, query, { smart: settings.smartDetect && !fallback }),
         create,
+        issues,
       };
     } else {
       value = null;

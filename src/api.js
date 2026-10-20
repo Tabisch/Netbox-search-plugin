@@ -253,3 +253,105 @@ export async function checkConnection(instanceUrl, token, signal) {
   await apiGet(instanceUrl, token, "/dcim/devices/", { limit: 1 }, signal);
   return status["netbox-version"] ?? "unknown version";
 }
+
+function vrfId(object) {
+  return object.vrf?.id ?? null;
+}
+
+function vrfName(object) {
+  return nameOf(object.vrf) ?? "Global";
+}
+
+function listUrl(instanceUrl, path, params) {
+  const url = new URL(`${instanceUrl}${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  return url.href;
+}
+
+// Statuses whose IP addresses are expected to carry the prefix's own mask.
+// Containers hold child prefixes, and pools (e.g. NAT, loopbacks) often use /32s.
+function expectsMatchingMasks(prefix) {
+  const status = prefix.status?.value ?? prefix.status;
+  return status !== "container" && !prefix.is_pool;
+}
+
+const MAX_CHECKED_VRFS = 3;
+
+// If `query` is a prefix that exists in NetBox, looks for common
+// misconfigurations and returns [{ prefix, message, url }]:
+// - duplicate: the same prefix exists more than once in the same VRF;
+// - VRF mismatch: the closest enclosing prefix is in a different (non-global) VRF;
+// - mask mismatch: IP addresses inside a non-container, non-pool prefix whose
+//   mask differs from the prefix length (e.g. a /32 inside a /24).
+// NetBox always stores prefixes as network addresses, so host bits can't be
+// set on a saved prefix and aren't checked here.
+export async function prefixIssues(instanceUrl, token, query, { signal } = {}) {
+  const detected = detectQuery(query);
+  if (detected?.kind !== "Prefix") {
+    return [];
+  }
+  const cidr = detected.params.prefix;
+  const length = maskLength({ prefix: cidr });
+  const related = await apiGet(instanceUrl, token, "/ipam/prefixes/", { contains: cidr, limit: 1000 }, signal);
+  const all = related.results ?? [];
+  const same = all.filter((p) => detectQuery(String(p.prefix ?? ""))?.params?.prefix === cidr);
+  const parents = all.filter((p) => maskLength(p) < length);
+
+  const byVrf = new Map();
+  for (const prefix of same) {
+    const key = vrfId(prefix);
+    byVrf.set(key, [...(byVrf.get(key) ?? []), prefix]);
+  }
+
+  const issues = [];
+  for (const [id, prefixes] of byVrf) {
+    if (prefixes.length > 1) {
+      issues.push({
+        prefix: cidr,
+        message: `Exists ${prefixes.length} times in VRF ${vrfName(prefixes[0])}`,
+        url: listUrl(instanceUrl, "/ipam/prefixes/", { prefix: cidr, vrf_id: id ?? "null" }),
+      });
+    }
+  }
+
+  const parent = mostSpecificPrefix(parents);
+  for (const prefixes of byVrf.values()) {
+    const prefix = prefixes[0];
+    if (parent && vrfId(parent) !== null && vrfId(parent) !== vrfId(prefix)) {
+      issues.push({
+        prefix: cidr,
+        message: `In VRF ${vrfName(prefix)}, but its parent ${parent.prefix} is in VRF ${vrfName(parent)}`,
+        url: webUrl(prefix, instanceUrl),
+      });
+    }
+  }
+
+  // IP addresses are counted per VRF, so duplicates are only checked once.
+  const checked = [...byVrf.values()]
+    .map((prefixes) => prefixes[0])
+    .filter(expectsMatchingMasks)
+    .slice(0, MAX_CHECKED_VRFS);
+  const counts = await Promise.all(
+    checked.map((prefix) => {
+      const params = { parent: cidr, vrf_id: vrfId(prefix) ?? "null", limit: 1 };
+      return Promise.all([
+        apiGet(instanceUrl, token, "/ipam/ip-addresses/", params, signal),
+        apiGet(instanceUrl, token, "/ipam/ip-addresses/", { ...params, mask_length: length }, signal),
+      ]);
+    }),
+  );
+  checked.forEach((prefix, index) => {
+    const [inside, matching] = counts[index];
+    const mismatched = (inside.count ?? 0) - (matching.count ?? 0);
+    if (mismatched > 0) {
+      issues.push({
+        prefix: cidr,
+        message: `${mismatched} IP address${mismatched === 1 ? "" : "es"} in VRF ${vrfName(prefix)} with a mask other than /${length}`,
+        url: listUrl(instanceUrl, "/ipam/ip-addresses/", { parent: cidr, vrf_id: vrfId(prefix) ?? "null" }),
+      });
+    }
+  });
+  return issues;
+}
