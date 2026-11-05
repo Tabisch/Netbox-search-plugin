@@ -30,6 +30,9 @@ export function originPattern(url) {
 }
 
 export const ALL_SITES = ["http://*/*", "https://*/*"];
+// Local files (file://) for the preview. Chrome only lets the extension
+// request this once "Allow access to file URLs" is on for it.
+export const FILE_SITES = ["file:///*"];
 
 // API tokens stay on this device (chrome.storage.local), keyed by instance id.
 export async function getTokens() {

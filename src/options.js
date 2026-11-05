@@ -2,6 +2,7 @@ import { checkConnection } from "./api.js";
 import { OBJECT_TYPES } from "./netbox.js";
 import {
   ALL_SITES,
+  FILE_SITES,
   getSettings,
   getTokens,
   hostOf,
@@ -22,6 +23,8 @@ const previewInput = document.getElementById("hoverPreview");
 const fieldsInput = document.getElementById("previewInFields");
 const pointerInput = document.getElementById("previewAtPointer");
 const status = document.getElementById("status");
+const fileAccessNote = document.getElementById("fileAccess");
+const filePermissionNote = document.getElementById("filePermission");
 
 function showStatus(message, kind) {
   status.textContent = message;
@@ -103,6 +106,36 @@ pointerInput.checked = settings.previewAtPointer;
 updateApiDependents();
 apiInput.addEventListener("change", updateApiDependents);
 
+// The preview runs in files opened directly in Chrome (file://) only with
+// access to file URLs: the "Allow access to file URLs" switch on the
+// extension's details page, which no request can turn on, plus the
+// file:///* host permission, which can only be requested once the switch is
+// on. Point to whichever is missing while the preview is on.
+let fileSchemeAllowed = false;
+async function updateFileAccessNote() {
+  fileSchemeAllowed = await chrome.extension.isAllowedFileSchemeAccess();
+  const wanted = apiInput.checked && previewInput.checked;
+  const granted = fileSchemeAllowed && (await chrome.permissions.contains({ origins: FILE_SITES }));
+  fileAccessNote.hidden = !wanted || fileSchemeAllowed;
+  filePermissionNote.hidden = !wanted || !fileSchemeAllowed || granted;
+}
+updateFileAccessNote();
+apiInput.addEventListener("change", updateFileAccessNote);
+previewInput.addEventListener("change", updateFileAccessNote);
+// The switch can change while this page is open in another tab.
+window.addEventListener("focus", updateFileAccessNote);
+document.getElementById("openDetails").addEventListener("click", () => {
+  chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
+});
+document.getElementById("allowFiles").addEventListener("click", async () => {
+  try {
+    await chrome.permissions.request({ origins: FILE_SITES });
+  } catch (error) {
+    showStatus(error.message, "error");
+  }
+  updateFileAccessNote();
+});
+
 for (const type of OBJECT_TYPES) {
   const label = document.createElement("label");
   label.className = "check";
@@ -181,6 +214,10 @@ form.addEventListener("submit", async (event) => {
     // drop access to the instances.
     if (hoverPreview) {
       origins.push(...ALL_SITES);
+      // Asking for file:///* without the switch on fails the whole request.
+      if (fileSchemeAllowed) {
+        origins.push(...FILE_SITES);
+      }
     }
     let granted = false;
     try {
@@ -219,6 +256,7 @@ form.addEventListener("submit", async (event) => {
     previewAtPointer: pointerInput.checked,
     menuTypes: [...typesBox.querySelectorAll("input:checked")].map((box) => box.value),
   });
+  updateFileAccessNote();
   if (warning) {
     showStatus(`Saved. ${warning}`, "error");
   } else {

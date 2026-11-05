@@ -56,6 +56,11 @@ button next to each instance checks the URL and token.
   default); password fields are always left out. In web terminals like Termix the card can end
   up at the bottom line; **Show the preview at the mouse pointer** (off by default) places it
   where the mouse selection ended instead.
+  Files opened directly in Chrome (`file://`, e.g. a local .json or .txt file) need two things:
+  **Allow access to file URLs** turned on on the extension's details page (`chrome://extensions`,
+  then **Details**), and access to local files, which the options page asks for once that switch is
+  on (click **Allow** in the hint, or **Save**). The options page shows a hint while either is
+  missing. Reload open file tabs afterwards.
 - **Create missing IP addresses:** when the selected text is an IP address that isn't in NetBox
   yet but lies inside a known prefix, the preview card offers **Create IP address**. It opens
   NetBox's add form prefilled from the most specific containing prefix: the address with the

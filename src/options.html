@@ -33,6 +33,7 @@
     button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
     button.secondary:hover { background: var(--border); }
     button.icon { padding: 6px 10px; }
+    button.link, button.link:hover { padding: 0; background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
     .actions { margin-top: 24px; }
     @media (max-width: 520px) {
       .columns { display: none; }
@@ -107,6 +108,16 @@
         </label>
         <div class="hint">Shows a small card with NetBox matches from the default instance below selected text.
           This asks for access to all websites so the preview can run on them. Selected text is only sent to your NetBox.</div>
+        <div id="fileAccess" class="hint" hidden>
+          To also preview text in files opened directly in Chrome (<code>file://</code>, e.g. .json or .txt files), turn on
+          <em>Allow access to file URLs</em> on the extension's details page, come back here and click <em>Save</em>, then
+          reload those tabs.
+          <button type="button" id="openDetails" class="link">Open extension details</button>
+        </div>
+        <div id="filePermission" class="hint" hidden>
+          Previews in files opened directly in Chrome (<code>file://</code>) need access to local files.
+          <button type="button" id="allowFiles" class="link">Allow</button>, then reload those tabs.
+        </div>
       </div>
 
       <h2>Context menu object types</h2>
