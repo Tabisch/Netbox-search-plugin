@@ -22,6 +22,7 @@ const previewInput = document.getElementById("hoverPreview");
 const fieldsInput = document.getElementById("previewInFields");
 const pointerInput = document.getElementById("previewAtPointer");
 const status = document.getElementById("status");
+const fileAccessNote = document.getElementById("fileAccess");
 
 function showStatus(message, kind) {
   status.textContent = message;
@@ -102,6 +103,20 @@ fieldsInput.checked = settings.previewInFields;
 pointerInput.checked = settings.previewAtPointer;
 updateApiDependents();
 apiInput.addEventListener("change", updateApiDependents);
+
+// Content scripts only run on file:// pages when the user has turned on
+// "Allow access to file URLs" for the extension; no permission request can
+// grant it. Point to the switch while the preview is on and access is off.
+async function updateFileAccessNote() {
+  const allowed = await chrome.extension.isAllowedFileSchemeAccess();
+  fileAccessNote.hidden = allowed || !(apiInput.checked && previewInput.checked);
+}
+updateFileAccessNote();
+apiInput.addEventListener("change", updateFileAccessNote);
+previewInput.addEventListener("change", updateFileAccessNote);
+document.getElementById("openDetails").addEventListener("click", () => {
+  chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
+});
 
 for (const type of OBJECT_TYPES) {
   const label = document.createElement("label");
@@ -192,6 +207,7 @@ form.addEventListener("submit", async (event) => {
       apiEnabled = hoverPreview = false;
       apiInput.checked = previewInput.checked = false;
       updateApiDependents();
+      updateFileAccessNote();
       warning = "Access was not granted, so the NetBox API features were turned off.";
     }
   } else {
